@@ -83,6 +83,7 @@ class BItable:
             self.conn.commit()
             if self.local_conn:
                 self.conn.close()
+            return True
 
 
 if __name__ == '__main__':
