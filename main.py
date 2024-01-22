@@ -9,18 +9,17 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+@app.get('/bi/update_persons')
+def update_persons():
+    for table in ('_reference300', '_reference155', '_inforg10632'):
+        _obj = cars.BItable(table)
+        _obj.db1c_sync()
+    return {"message": "Persons updated"}
 
 
-@app.get('/nsi/db1c_sync/{name}')
-async def db1c_sync(name: str):
-    if name in ['_reference300', '_reference155']:
-        obj = cars.BItable(name)
-        sync_status = obj.db1c_sync()
-        if sync_status:
-            return {"message": f"Table {name} is synced"}
-        return {"message": f"Unable to sync table {name}"}
-    else:
-        return {"message": f"Table {name} not found"}
+@app.get('/bi/update_cars')
+def update_cars():
+    for table in ('_reference262', ):
+        _obj = cars.BItable(table)
+        _obj.db1c_sync()
+    return {"message": "Cars updated"}

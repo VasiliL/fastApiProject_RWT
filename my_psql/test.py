@@ -1,6 +1,11 @@
 from my_psql import cars
 
 
-pers = cars.BItable('_reference300')
+def update_persons():
+    for table in ('_reference300', '_reference155', '_inforg10632'):
+        _obj = cars.BItable(table)
+        _obj.db1c_sync()
 
-pers.db1c_sync()
+
+if __name__ == '__main__':
+    update_persons()

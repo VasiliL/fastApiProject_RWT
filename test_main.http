@@ -10,5 +10,10 @@ Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000//nsi/db1c_sync/_reference300
+GET http://127.0.0.1:8000/bi/update_persons
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/bi/update_cars
 Accept: application/json
