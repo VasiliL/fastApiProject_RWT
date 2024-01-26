@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2 import sql, extras
 import json
+import re
 
 CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\my_psql\sql_credentials.json'
 
@@ -25,7 +26,7 @@ class BItable:
     def __init__(self, table_name, conn=None):
         self.__credentials_file = CREDENTIALS_FILE
         self.columns = None
-        self.primary = None
+        self.unique_key = None
         self.db1c_conn = _DBConnection.get_connection('db1c', self.__credentials_file)
         self.table_name = table_name
         self.conn = conn
@@ -37,14 +38,14 @@ class BItable:
         with (self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
             query_columns_names = sql.SQL('SELECT column_name FROM information_schema.columns where table_name = {'
                                           'table_name}').format(table_name=sql.Literal(self.table_name))
-            query_get_primary = sql.SQL('SELECT a.attname FROM pg_index i JOIN pg_attribute a '
-                                        'ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) '
-                                        'WHERE  i.indrelid = {table_name}::regclass AND i.indisprimary'
-                                        ).format(table_name=sql.Literal(self.table_name))
+            query_get_unique_key = sql.SQL('SELECT a.attname FROM pg_index i JOIN pg_attribute a '
+                                           'ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) '
+                                           'WHERE  i.indrelid = {table_name}::regclass'
+                                           ).format(table_name=sql.Literal(self.table_name))
             target_cur.execute(query_columns_names)
             self.columns = target_cur.fetchall()
-            target_cur.execute(query_get_primary)
-            self.primary = target_cur.fetchone()
+            target_cur.execute(query_get_unique_key)
+            self.unique_key = target_cur.fetchone()
 
     def __retrieve_rows(self):
         with self.db1c_conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as source_cur:
@@ -54,7 +55,8 @@ class BItable:
             return source_cur.fetchall()
 
     def __process_rows(self, rows):
-        if self.table_name.startswith('_reference'):
+        _reference_pattern = re.compile(r'^_(reference|document)\d+$')
+        if re.fullmatch(_reference_pattern, self.table_name):
             updates = [sql.SQL('{column_name} = excluded.{column_name}'
                                ).format(column_name=sql.Identifier(i[0])) for i in self.columns]
             conditions = sql.SQL('r._version < excluded._version')
@@ -63,9 +65,9 @@ class BItable:
                 'updates} where {conditions}'
             ).format(table_name=sql.Identifier(self.table_name)
                      , placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns)
-                     , p_key=sql.SQL(', ').join(sql.Identifier(_) for _ in self.primary)
+                     , p_key=sql.SQL(', ').join(sql.Identifier(_) for _ in self.unique_key)
                      , updates=sql.SQL(', ').join(updates), conditions=conditions)
-        elif self.table_name.startswith('_inforg'):
+        else:
             query = sql.SQL('insert into {table_name} as r values ({placeholders}) on conflict do nothing'
                             ).format(table_name=sql.Identifier(self.table_name)
                                      , placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns))

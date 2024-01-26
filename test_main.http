@@ -5,15 +5,22 @@ Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/hello/User
+GET http://127.0.0.1:8000/bi/update_data/cars
 Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/bi/update_persons
+GET http://127.0.0.1:8000/bi/update_data/persons
 Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/bi/update_cars
+GET http://127.0.0.1:8000/bi/update_data/routes
 Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/bi/update_data/cargo
+Accept: application/json
+
+###
