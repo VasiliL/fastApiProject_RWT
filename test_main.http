@@ -15,7 +15,7 @@ Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/bi/update_data/cargo
+GET http://127.0.0.1:8000/bi/update_data/shipment_requests
 Accept: application/json
 
 ###
@@ -26,6 +26,11 @@ Accept: application/json
 ###
 
 GET http://127.0.0.1:8000/bi/get/persons
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/bi/get/counterparty
 Accept: application/json
 
 ###
