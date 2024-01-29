@@ -3,36 +3,44 @@ from psycopg2 import sql, extras
 import json
 import re
 
-CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\my_psql\sql_credentials.json'
-
 
 class _DBConnection:
-    @staticmethod
-    def load_credentials(credentials_file):
-        with open(credentials_file, 'r') as f:
+    CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\my_psql\sql_credentials.json'
+
+    def __init__(self, db):
+        self.connection = None
+        self.db = db
+        self.closed = True
+
+    def open_connection(self, db):
+        credentials = self.load_credentials()
+        self.connection = psycopg2.connect(host=credentials[db]['host'], port=credentials[db]['port']
+                                           , database=credentials[db]['database'], user=credentials[db]['user']
+                                           , password=credentials[db]['password'])
+        self.closed = False
+
+    def load_credentials(self):
+        with open(self.CREDENTIALS_FILE, 'r') as f:
             return json.load(f)
 
-    @classmethod
-    def get_connection(cls, db, credentials_file):
-        credentials = cls.load_credentials(credentials_file)
-        return psycopg2.connect(host=credentials[db]['host'], port=credentials[db]['port']
-                                , database=credentials[db]['database'], user=credentials[db]['user']
-                                , password=credentials[db]['password'])
+    def get_connection(self):
+        if self.closed:
+            self.open_connection(self.db)
+        return self.connection
+
+    def __call__(self, *args, **kwargs):
+        return self.get_connection()
 
 
 class BItable:
     """Defines a table in 'cars' database. Send select, insert, and update to the table."""
 
-    def __init__(self, table_name, conn=None):
-        self.__credentials_file = CREDENTIALS_FILE
+    def __init__(self, table_name):
+        self.table_name = table_name
+        self.conn = _DBConnection('cars').get_connection()
+        self.db1c_conn = _DBConnection('db1c').get_connection()
         self.columns = None
         self.unique_key = None
-        self.db1c_conn = _DBConnection.get_connection('db1c', self.__credentials_file)
-        self.table_name = table_name
-        self.conn = conn
-        if self.conn is None:
-            self.conn = _DBConnection().get_connection('cars', self.__credentials_file)
-            self.local_conn = True
 
     def __retrieve_database_info(self):
         with (self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
@@ -83,9 +91,19 @@ class BItable:
         finally:
             self.db1c_conn.close()
             self.conn.commit()
-            if self.local_conn:
-                self.conn.close()
-            return True
+
+
+class BIView:
+    def __init__(self, view) -> None:
+        self.view = view
+        self.conn = _DBConnection('cars').get_connection()
+
+    def get_data(self):
+        with self.conn:
+            with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+                query = sql.SQL('SELECT * FROM {view}').format(view=sql.Identifier(self.view))
+                cursor.execute(query)
+                return cursor.fetchall()
 
 
 if __name__ == '__main__':

@@ -5,11 +5,6 @@ Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/bi/update_data/cars
-Accept: application/json
-
-###
-
 GET http://127.0.0.1:8000/bi/update_data/persons
 Accept: application/json
 
@@ -21,6 +16,16 @@ Accept: application/json
 ###
 
 GET http://127.0.0.1:8000/bi/update_data/cargo
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/bi/get/cars
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/bi/get/persons
 Accept: application/json
 
 ###

@@ -1,19 +1,13 @@
 from my_psql import cars
+import json
 
 
-def update_data(data):
-    tables = {'persons': ('_reference300', '_reference155', '_inforg10632'),
-              'cars': ('_reference262', '_reference211', '_reference259'),
-              'cargo': ('_reference124',),
-              'routes': ('_reference207',)}
-    if data in tables:
-        for table in tables[data]:
-            _obj = cars.BItable(table)
-            _obj.db1c_sync()
-        return {"message": f"{data} updated"}
-    else:
-        return {"message": f"Can not update {data}"}
+VIEWS = {'persons': 'persons', 'cars': 'cars', 'cargo': 'cargo', 'routes': 'routes'}
 
 
-if __name__ == '__main__':
-    update_data('routes')
+def get_data(data):
+    if data in VIEWS:
+        _obj = cars.BIView(data)
+        json_data = json.dumps([dict(row) for row in _obj.get_data()], default=str, ensure_ascii=False)
+        return json_data
+
