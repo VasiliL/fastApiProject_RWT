@@ -2,6 +2,17 @@ from pydantic import BaseModel, computed_field
 from datetime import datetime, date
 
 
+class Invoice(BaseModel):
+    id: int
+    client: str
+    route: str
+    cargo: str
+    weight: float
+    price: float
+    departure_date: datetime
+    arrival_date: datetime
+
+
 class DriverSet(BaseModel):
     set_date: date
     driver_name: int

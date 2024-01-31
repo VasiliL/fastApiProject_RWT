@@ -4,8 +4,9 @@ import pytz
 from fastapi import FastAPI
 from my_psql import cars
 import json
-from models.ui_inputs import DriverSet, CarSet, WaybillSet, TnSet
+from models.ui_inputs import DriverSet, CarSet, WaybillSet, TnSet, Invoice
 from psycopg2 import sql
+from typing import List
 
 app = FastAPI()
 
@@ -60,15 +61,15 @@ def drivers_place(start_day: date, end_day: date):
     return json_data
 
 
-@app.get('/bi/get_condition/react_invoices')
+@app.get('/bi/get_condition/react_invoices', response_model=List[Invoice])
 def react_invoices(day: date):
     """Расстановка машин на маршруты: информация про заявки"""
     _obj = cars.BIView('react_invoices')
     where_condition = sql.SQL('WHERE {day} between {departure_date} and {arrival_date};').format(
         departure_date=sql.Identifier('departure_date'), arrival_date=sql.Identifier('arrival_date'),
         day=sql.Literal(day.strftime('%Y-%m-%d')))
-    json_data = json.dumps([dict(row) for row in _obj.get_data(where_condition)], default=str, ensure_ascii=False)
-    return json_data
+    # json_data = json.dumps([dict(row) for row in _obj.get_data(where_condition)], default=str, ensure_ascii=False)
+    return [Invoice(**dict(row)) for row in _obj.get_data(where_condition)]
 
 
 @app.get('/bi/get_condition/cars_place')
