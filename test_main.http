@@ -1,21 +1,6 @@
 # Test your FastAPI endpoints
 
-GET http://127.0.0.1:8000/
-Accept: application/json
-
-###
-
-GET http://127.0.0.1:8000/bi/update_data/persons
-Accept: application/json
-
-###
-
-GET http://127.0.0.1:8000/bi/update_data/routes
-Accept: application/json
-
-###
-
-GET http://127.0.0.1:8000/bi/update_data/shipment_requests
+PATCH http://127.0.0.1:8000/bi/update_data/cars
 Accept: application/json
 
 ###
@@ -25,12 +10,12 @@ Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/bi/get/persons
+GET http://127.0.0.1:8000/bi/get_condition/invoices?day=2024-01-30
 Accept: application/json
 
 ###
 
-GET http://127.0.0.1:8000/bi/get/counterparty
+GET http://127.0.0.1:8000/bi/get/react_drivers
 Accept: application/json
 
 ###

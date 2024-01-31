@@ -5,8 +5,9 @@ import re
 
 
 class _DBConnection:
-    # CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\my_psql\sql_credentials.json'
-    CREDENTIALS_FILE = r'C:\Users\basil\PycharmProjects\fastApiProject_RWT\my_psql\sql_credentials.json'
+    CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\my_psql\sql_credentials.json'
+
+    # CREDENTIALS_FILE = r'C:\Users\basil\PycharmProjects\fastApiProject_RWT\my_psql\sql_credentials.json'
 
     def __init__(self, db):
         self.connection = None
@@ -15,9 +16,9 @@ class _DBConnection:
 
     def open_connection(self, db):
         credentials = self.load_credentials()
-        self.connection = psycopg2.connect(host=credentials[db]['host'], port=credentials[db]['port']
-                                           , database=credentials[db]['database'], user=credentials[db]['user']
-                                           , password=credentials[db]['password'])
+        self.connection = psycopg2.connect(host=credentials[db]['host'], port=credentials[db]['port'],
+                                           database=credentials[db]['database'], user=credentials[db]['user'],
+                                           password=credentials[db]['password'])
         self.closed = False
 
     def load_credentials(self):
@@ -44,12 +45,12 @@ class BItable:
         self.unique_key = None
 
     def __retrieve_database_info(self):
-        with (self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
+        with (self.db1c_conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
             query_columns_names = sql.SQL('SELECT column_name FROM information_schema.columns where table_name = {'
                                           'table_name}').format(table_name=sql.Literal(self.table_name))
             query_get_unique_key = sql.SQL('SELECT a.attname FROM pg_index i JOIN pg_attribute a '
                                            'ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) '
-                                           'WHERE  i.indrelid = {table_name}::regclass'
+                                           'WHERE  i.indrelid = {table_name}::regclass and i.indisprimary is true'
                                            ).format(table_name=sql.Literal(self.table_name))
             target_cur.execute(query_columns_names)
             self.columns = target_cur.fetchall()
@@ -72,14 +73,14 @@ class BItable:
             query = sql.SQL(
                 'insert into {table_name} as r values ({placeholders}) on conflict ({p_key}) do update set {'
                 'updates} where {conditions}'
-            ).format(table_name=sql.Identifier(self.table_name)
-                     , placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns)
-                     , p_key=sql.SQL(', ').join(sql.Identifier(_) for _ in self.unique_key)
-                     , updates=sql.SQL(', ').join(updates), conditions=conditions)
+            ).format(table_name=sql.Identifier(self.table_name),
+                     placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns),
+                     p_key=sql.SQL(', ').join(sql.Identifier(_) for _ in self.unique_key),
+                     updates=sql.SQL(', ').join(updates), conditions=conditions)
         else:
             query = sql.SQL('insert into {table_name} as r values ({placeholders}) on conflict do nothing'
-                            ).format(table_name=sql.Identifier(self.table_name)
-                                     , placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns))
+                            ).format(table_name=sql.Identifier(self.table_name),
+                                     placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns))
         with (self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
             for row in rows:
                 target_cur.execute(query, row)
@@ -99,10 +100,18 @@ class BIView:
         self.view = view
         self.conn = _DBConnection('cars').get_connection()
 
-    def get_data(self):
+    def get_data(self, where=None):
+        where_clause = where if where else sql.SQL('')
         with self.conn:
             with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
-                query = sql.SQL('SELECT * FROM {view}').format(view=sql.Identifier(self.view))
+                query = sql.SQL('SELECT * FROM {view} {where}').format(view=sql.Identifier(self.view),
+                                                                       where=where_clause)
+                cursor.execute(query)
+                return cursor.fetchall()
+
+    def custom_select(self, query):
+        with self.conn:
+            with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
                 cursor.execute(query)
                 return cursor.fetchall()
 
