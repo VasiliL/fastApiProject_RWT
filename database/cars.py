@@ -5,8 +5,8 @@ import re
 
 
 class _DBConnection:
-    CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\database\sql_credentials.json'
-
+    # CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\database\sql_credentials.json'
+    CREDENTIALS_FILE = r'database/sql_credentials.json'
     # CREDENTIALS_FILE = r'C:\Users\basil\PycharmProjects\fastApiProject_RWT\database\sql_credentials.json'
 
     def __init__(self, db):
