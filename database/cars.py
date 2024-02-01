@@ -5,33 +5,29 @@ import re
 
 
 class _DBConnection:
-    CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\my_psql\sql_credentials.json'
+    CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\database\sql_credentials.json'
 
-    # CREDENTIALS_FILE = r'C:\Users\basil\PycharmProjects\fastApiProject_RWT\my_psql\sql_credentials.json'
+    # CREDENTIALS_FILE = r'C:\Users\basil\PycharmProjects\fastApiProject_RWT\database\sql_credentials.json'
 
     def __init__(self, db):
-        self.connection = None
+        self.__connection = None
         self.db = db
-        self.closed = True
+
+    @property
+    def connection(self):
+        if self.__connection is None or self.__connection.closed:
+            self.__connection = self.open_connection(self.db)
+        return self.__connection
 
     def open_connection(self, db):
         credentials = self.load_credentials()
-        self.connection = psycopg2.connect(host=credentials[db]['host'], port=credentials[db]['port'],
-                                           database=credentials[db]['database'], user=credentials[db]['user'],
-                                           password=credentials[db]['password'])
-        self.closed = False
+        return psycopg2.connect(host=credentials[db]['host'], port=credentials[db]['port'],
+                                database=credentials[db]['database'], user=credentials[db]['user'],
+                                password=credentials[db]['password'])
 
     def load_credentials(self):
         with open(self.CREDENTIALS_FILE, 'r') as f:
             return json.load(f)
-
-    def get_connection(self):
-        if self.closed:
-            self.open_connection(self.db)
-        return self.connection
-
-    def __call__(self, *args, **kwargs):
-        return self.get_connection()
 
 
 class BItable:
@@ -39,13 +35,13 @@ class BItable:
 
     def __init__(self, table_name):
         self.table_name = table_name
-        self.conn = _DBConnection('cars').get_connection()
-        self.db1c_conn = _DBConnection('db1c').get_connection()
+        self.cars = _DBConnection('cars')
+        self.db1c = _DBConnection('db1c')
         self.columns = None
         self.unique_key = None
 
     def __retrieve_database_info(self):
-        with (self.db1c_conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
+        with (self.db1c.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
             query_columns_names = sql.SQL('SELECT column_name FROM information_schema.columns where table_name = {'
                                           'table_name}').format(table_name=sql.Literal(self.table_name))
             query_get_unique_key = sql.SQL('SELECT a.attname FROM pg_index i JOIN pg_attribute a '
@@ -58,7 +54,7 @@ class BItable:
             self.unique_key = target_cur.fetchone()
 
     def __retrieve_rows(self):
-        with self.db1c_conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as source_cur:
+        with self.db1c.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as source_cur:
             query = sql.SQL('SELECT * FROM {db1c_table_name}').format(
                 db1c_table_name=sql.Identifier(self.table_name))
             source_cur.execute(query)
@@ -81,7 +77,7 @@ class BItable:
             query = sql.SQL('insert into {table_name} as r values ({placeholders}) on conflict do nothing'
                             ).format(table_name=sql.Identifier(self.table_name),
                                      placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns))
-        with (self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
+        with (self.cars.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
             for row in rows:
                 target_cur.execute(query, row)
 
@@ -91,27 +87,39 @@ class BItable:
             rows = self.__retrieve_rows()
             self.__process_rows(rows)
         finally:
-            self.db1c_conn.close()
-            self.conn.commit()
+            self.db1c.connection.close()
+            self.cars.connection.commit()
+
+    def insert_data(self, columns, row):
+        insert = sql.SQL('insert into {table_name} ({columns}) values ({placeholders});').format(
+            table_name=sql.Identifier(self.table_name),
+            columns=sql.SQL(', ').join(sql.Identifier(col) for col in columns),
+            placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in range(len(columns)))
+        )
+        try:
+            with (self.cars.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
+                target_cur.execute(insert, row)
+        finally:
+            self.cars.connection.commit()
 
 
 class BIView:
     def __init__(self, view) -> None:
         self.view = view
-        self.conn = _DBConnection('cars').get_connection()
+        self.cars = _DBConnection('cars')
 
     def get_data(self, where=None):
         where_clause = where if where else sql.SQL('')
-        with self.conn:
-            with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+        with self.cars.connection:
+            with self.cars.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
                 query = sql.SQL('SELECT * FROM {view} {where}').format(view=sql.Identifier(self.view),
                                                                        where=where_clause)
                 cursor.execute(query)
                 return cursor.fetchall()
 
     def custom_select(self, query):
-        with self.conn:
-            with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+        with self.cars.connection:
+            with self.cars.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
                 cursor.execute(query)
                 return cursor.fetchall()
 

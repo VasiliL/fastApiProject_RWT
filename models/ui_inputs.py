@@ -1,8 +1,39 @@
 from pydantic import BaseModel, computed_field
 from datetime import datetime, date
+from psycopg2 import sql
+from typing import Optional
 
 
-class Invoice(BaseModel):
+class MyModel(BaseModel):
+    @classmethod
+    def generate_select_query(cls):
+        column_names = cls.__annotations__.keys()
+        return sql.SQL('SELECT {}').format(sql.SQL(',').join(map(sql.Identifier, column_names)))
+
+
+class Car(MyModel, BaseModel):
+    id: int
+    description: str
+    plate_number: str
+    vin: str
+    year: float
+    engine_hp: float
+    weight_capacity: float
+    volume: float
+    weight_own: float
+    car_type: str
+
+
+class Person(MyModel, BaseModel):
+    id: int
+    fio: str
+    code: str
+    position: str
+    inn: str
+    snils: str
+
+
+class Invoice(MyModel, BaseModel):
     id: int
     client: str
     route: str
@@ -13,23 +44,21 @@ class Invoice(BaseModel):
     arrival_date: datetime
 
 
-class DriverSet(BaseModel):
-    set_date: date
-    driver_name: int
-    car_name: int
+class DriverPlace(MyModel, BaseModel):
+    date: date
+    car_id: int
+    driver_id: int
+    plate_number:Optional[str]
+    fio: Optional[str]
 
 
-class CarSet(BaseModel):
-    set_date: date
-    invoice_id: int
-    car_name: int
-
-
-class WaybillSet(BaseModel):
-    run_id: int
+class Run(MyModel, BaseModel):
+    id: int
+    car: int
+    driver: int
+    invoice: int
+    invoice_document: str
     waybill: str
-
-
-class TnSet(BaseModel):
-    run_id: int
-    tn: str
+    weight: float
+    date_departure: date
+    date_arrival: Optional[date]
