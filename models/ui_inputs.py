@@ -45,6 +45,7 @@ class Invoice(MyModel, BaseModel):
 
 
 class DriverPlace(MyModel, BaseModel):
+    id: int
     date: date
     car_id: int
     driver_id: int

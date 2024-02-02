@@ -7,6 +7,7 @@ import re
 class _DBConnection:
     # CREDENTIALS_FILE = r'C:\Users\user\PycharmProjects\fastApiProject\database\sql_credentials.json'
     CREDENTIALS_FILE = r'database/sql_credentials.json'
+
     # CREDENTIALS_FILE = r'C:\Users\basil\PycharmProjects\fastApiProject_RWT\database\sql_credentials.json'
 
     def __init__(self, db):
@@ -101,6 +102,35 @@ class BItable:
                 target_cur.execute(insert, row)
         finally:
             self.cars.connection.commit()
+            self.cars.connection.close()
+
+    def update_data(self, columns_data, condition_data):
+        update = (sql.SQL('update {table_name} set ').format(table_name=sql.Identifier(self.table_name)) +
+                  sql.SQL(', ').join(sql.SQL('{column_name}={value}').format(
+                      column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in columns_data.items()) +
+                  sql.SQL(' WHERE ') +
+                  sql.SQL(' and ').join(sql.SQL('{column_name}={value}').format(
+                      column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in condition_data.items())
+                  )
+        try:
+            with (self.cars.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
+                target_cur.execute(update)
+        finally:
+            self.cars.connection.commit()
+            self.cars.connection.close()
+
+    def delete_data(self, condition_data):
+        delete = (sql.SQL('delete from {table_name}').format(table_name=sql.Identifier(self.table_name)) +
+                  sql.SQL(' WHERE ') +
+                  sql.SQL(' and ').join(sql.SQL('{column_name}={value}').format(
+                      column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in condition_data.items())
+                  )
+        try:
+            with (self.cars.connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as target_cur):
+                target_cur.execute(delete)
+        finally:
+            self.cars.connection.commit()
+            self.cars.connection.close()
 
 
 class BIView:

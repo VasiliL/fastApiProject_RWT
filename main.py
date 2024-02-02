@@ -89,6 +89,37 @@ async def get_drivers_place(start_day: date, end_day: date):
     return await get_view_data(view, cl, where)
 
 
+@app.post('/api/drivers_place')
+def set_drivers_place(data: DriverPlace):
+    """Create drivers on cars places"""
+    columns = ('_date', 'driver', 'car')
+    _obj = cars.BItable('drivers_place_table')
+    _obj.insert_data(columns, [data.date, data.driver_id, data.car_id])
+    return {"message": f"{data} created"}
+
+
+@app.put('/api/drivers_place')
+async def put_drivers_place(data: DriverPlace):
+    """Change drivers on cars places"""
+    columns = ('_date', 'driver', 'car')
+    condition_columns = ('id',)
+    columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
+    condition_data = dict(zip(condition_columns, [data.id, ]))
+    _obj = cars.BItable('drivers_place_table')
+    _obj.update_data(columns_data, condition_data)
+    return {"message": f"{data} updated"}
+
+
+@app.delete('/api/drivers_place')
+async def delete_drivers_place(data: int):
+    """Delete drivers on cars places"""
+    condition_columns = ('id',)
+    condition_data = dict(zip(condition_columns, [data, ]))
+    _obj = cars.BItable('drivers_place_table')
+    _obj.delete_data(condition_data)
+    return {"message": f"{data} deleted"}
+
+
 @app.get('/api/runs', response_model=List[Run])
 async def get_runs(start_day: date, end_day: date):
     """Returns drivers on cars places actual for a given range of days"""
@@ -99,13 +130,37 @@ async def get_runs(start_day: date, end_day: date):
     return await get_view_data(view, cl, where)
 
 
-@app.post('/api/drivers_place')
-def set_drivers_place(data: List[DriverPlace]):
-    """Sets drivers on cars places"""
-    columns = ('_date', 'driver', 'car')
-    _obj = cars.BItable('drivers_place_table')
-    for row in data:
-        _obj.insert_data(columns, [row.date, row.driver_id, row.car_id])
+@app.post('/api/runs')
+async def post_runs(data: Run):
+    """Create runs"""
+    columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
+    _obj = cars.BItable('runs')
+    _obj.insert_data(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
+                               data.date_arrival, data.car, data.driver, data.invoice])
+    return {"message": f"{data} created"}
+
+
+@app.put('/api/runs')
+async def put_runs(data: Run):
+    """Update runs"""
+    columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
+    condition_columns = ('id',)
+    columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
+                                      data.date_arrival, data.car, data.driver, data.invoice]))
+    condition_data = dict(zip(condition_columns, [data.id, ]))
+    _obj = cars.BItable('runs')
+    _obj.update_data(columns_data, condition_data)
+    return {"message": f"{data} updated"}
+
+
+@app.delete('/api/runs')
+async def delete_runs(data: int):
+    """Delete runs"""
+    condition_columns = ('id',)
+    condition_data = dict(zip(condition_columns, [data, ]))
+    _obj = cars.BItable('runs')
+    _obj.delete_data(condition_data)
+    return {"message": f"{data} deleted"}
 
 #
 #
