@@ -37,7 +37,7 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.patch('/bi/update_data/{data}')
+@app.patch('/api/update_data/{data}')
 def update_data(data):
     """Update data from 1C tables: persons, cars, invoices."""
     if data in TABLES:
@@ -49,7 +49,7 @@ def update_data(data):
         return {"message": f"Can not update {data}"}
 
 
-@app.get('/bi/cars', response_model=List[Car])
+@app.get('/api/cars', response_model=List[Car])
 async def get_cars():
     """Returns all cars"""
     view = 'cars'
@@ -58,7 +58,7 @@ async def get_cars():
     return await get_view_data(view, cl, where)
 
 
-@app.get('/bi/drivers', response_model=List[Person])
+@app.get('/api/drivers', response_model=List[Person])
 async def get_drivers():
     """Returns all drivers"""
     view = 'persons'
@@ -67,7 +67,7 @@ async def get_drivers():
     return await get_view_data(view, cl, where)
 
 
-@app.get('/bi/invoices', response_model=List[Invoice])
+@app.get('/api/invoices', response_model=List[Invoice])
 async def get_invoices(day: Optional[date] = None):
     """Returns all invoices actual for a given day  or for today"""
     view = 'invoices'
@@ -79,7 +79,7 @@ async def get_invoices(day: Optional[date] = None):
     return await get_view_data(view, cl, where)
 
 
-@app.get('/bi/drivers_place', response_model=List[DriverPlace])
+@app.get('/api/drivers_place', response_model=List[DriverPlace])
 async def get_drivers_place(start_day: date, end_day: date):
     """Returns drivers on cars places actual for a given range of days"""
     view = 'drivers_place'
@@ -89,7 +89,7 @@ async def get_drivers_place(start_day: date, end_day: date):
     return await get_view_data(view, cl, where)
 
 
-@app.get('/bi/runs', response_model=List[Run])
+@app.get('/api/runs', response_model=List[Run])
 async def get_runs(start_day: date, end_day: date):
     """Returns drivers on cars places actual for a given range of days"""
     view = 'runs_view'
@@ -99,7 +99,7 @@ async def get_runs(start_day: date, end_day: date):
     return await get_view_data(view, cl, where)
 
 
-@app.post('/bi/drivers_place')
+@app.post('/api/drivers_place')
 def set_drivers_place(data: List[DriverPlace]):
     """Sets drivers on cars places"""
     columns = ('_date', 'driver', 'car')
