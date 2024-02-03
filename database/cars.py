@@ -163,7 +163,7 @@ class CarsTable(Table):
                       column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in condition_data.items()) +
                   sql.SQL(' returning id')
                   )
-        return self.dml_handler(update)
+        return bool(self.dml_handler(update)[0]['rowcount'])
 
     def delete_data(self, condition_data):
         delete = (sql.SQL('delete from {table_name}').format(table_name=sql.Identifier(self.table_name)) +
@@ -172,7 +172,7 @@ class CarsTable(Table):
                       column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in condition_data.items()) +
                   sql.SQL(' returning id')
                   )
-        return self.dml_handler(delete)
+        return bool(self.dml_handler(delete)[0]['rowcount'])
 
 
 if __name__ == '__main__':
