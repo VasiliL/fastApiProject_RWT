@@ -1,4 +1,4 @@
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel
 from datetime import datetime, date
 from psycopg2 import sql
 from typing import Optional
@@ -49,7 +49,7 @@ class DriverPlace(MyModel, BaseModel):
     date: date
     car_id: int
     driver_id: int
-    plate_number:Optional[str]
+    plate_number: Optional[str]
     fio: Optional[str]
 
 

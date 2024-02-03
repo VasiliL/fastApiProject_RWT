@@ -1,9 +1,7 @@
-from datetime import datetime, date
-import pytz
+from datetime import date
 
 from fastapi import FastAPI
 from database import cars
-import json
 from models.ui_inputs import Car, Person, Invoice, DriverPlace, Run
 from psycopg2 import sql
 from typing import List, Optional
@@ -19,6 +17,31 @@ STATIC_VIEWS = {'persons', 'cars', 'cargo', 'routes', 'counterparty', 'invoices'
 
 
 async def get_query(view, cl, where=None):
+    """
+
+    Parameters:
+    - view: The name of the database view to retrieve data from. (String)
+
+    - cl: An instance of a class that generates the select query for the view. (Object)
+
+    - where: Optional parameter specifying the where condition for the query. (String)
+
+    Returns:
+    - A concatenated string of the select query and the where condition, which can be used to retrieve data from
+    the specified view.
+
+    Example usage:
+    view = "employees"
+    cl = SelectQueryGenerator()
+    where = "age > 30"
+
+    query = get_query(view, cl, where)
+    print(query)
+
+    Output:
+    SELECT * FROM employees WHERE age > 30
+
+    """
     select_clause = cl.generate_select_query() + sql.SQL(' from {table}').format(
         table=sql.Identifier(view))
     where_condition = where if where else sql.SQL('')
@@ -26,24 +49,61 @@ async def get_query(view, cl, where=None):
 
 
 async def get_view_data(view, cl, where=None):
-    _obj = cars.BIView(view)
+    """
+
+    This method, get_view_data, is an asynchronous method that retrieves view data based on the provided parameters.
+    It returns a list of objects based on the query results.
+
+    Parameters:
+    - view: The view object that represents the table or view from which the data is retrieved.
+    - cl: The class that represents the object type to be returned.
+    - where: An optional parameter that specifies the conditions for filtering the data.
+
+    Returns:
+    - A list of objects (instances of the class specified by the 'cl' parameter) based on the query results.
+
+    """
+    _obj = cars.CarsTable(view)
     select_clause = await get_query(view, cl, where)
-    return [cl(**dict(row)) for row in _obj.custom_select(select_clause)]
+    return [cl(**dict(row)) for row in _obj.dql_handler(select_clause)[0]]
 
 
 @app.get("/")
 async def root():
-    """Testing 'Hello World' function"""
+    """
+
+    Root
+
+    This method is responsible for handling requests to the root endpoint ("/") in the application.
+
+    Returns:
+        A dictionary containing the message "Hello World".
+
+    """
     return {"message": "Hello World"}
 
 
 @app.patch('/api/update_data/{data}')
 def update_data(data):
-    """Update data from 1C tables: persons, cars, invoices."""
+    """
+    Updates the data for a given table.
+
+    Parameters:
+    - data (str): The name of the table to update.
+
+    Returns:
+    - dict: A dictionary with a message indicating the status of the update.
+
+    Example usage:
+    >>> update_data('table1')
+    {'message': 'table1 updated'}
+    >>> update_data('table3')
+    {'message': 'Can not update table3'}
+    """
     if data in TABLES:
         for table in TABLES[data]:
-            _obj = cars.BItable(table)
-            _obj.db1c_sync()
+            _obj = cars.CarsTable(table)
+            _obj.sync()
         return {"message": f"{data} updated"}
     else:
         return {"message": f"Can not update {data}"}
@@ -51,16 +111,32 @@ def update_data(data):
 
 @app.get('/api/cars', response_model=List[Car])
 async def get_cars():
-    """Returns all cars"""
+    """
+    Get a list of cars from the API.
+    Returns a list of Car objects.
+    Args: None
+    Returns: A list of Car objects.
+    Example:
+        cars = get_cars()
+    """
     view = 'cars'
     cl = Car
-    where = None
+    where = sql.SQL('''where car_type in ('Грузовые автомобили тягачи седельные', 'Тягачи седельные 6х4',
+     'Грузовые самосвалы 8х4')''')
     return await get_view_data(view, cl, where)
 
 
 @app.get('/api/drivers', response_model=List[Person])
 async def get_drivers():
-    """Returns all drivers"""
+    """
+    Function: get_drivers
+    Description:
+    This function is an API endpoint that retrieves a list of drivers from the 'persons' view in the database.
+    It uses the 'Person' model to define the structure of the data.
+    Parameters: None
+    Returns: A list of 'Person' objects.
+    Example Usage: GET /api/drivers
+    """
     view = 'persons'
     cl = Person
     where = sql.SQL('where position = {}').format(sql.Literal('Водитель-экспедитор'))
@@ -69,7 +145,15 @@ async def get_drivers():
 
 @app.get('/api/invoices', response_model=List[Invoice])
 async def get_invoices(day: Optional[date] = None):
-    """Returns all invoices actual for a given day  or for today"""
+    """
+    Get invoices based on the given day.
+    Parameters:
+    - day: Optional[date] (default=None)
+        The specific day to filter the invoices. If not provided, it will use today's date.
+    Returns:
+    - List[Invoice]
+        A list of invoice objects.
+    """
     view = 'invoices'
     cl = Invoice
     day = day or date.today()
@@ -81,7 +165,18 @@ async def get_invoices(day: Optional[date] = None):
 
 @app.get('/api/drivers_place', response_model=List[DriverPlace])
 async def get_drivers_place(start_day: date, end_day: date):
-    """Returns drivers on cars places actual for a given range of days"""
+    """
+    get_drivers_place
+    Method signature:
+        async def get_drivers_place(start_day: date, end_day: date) -> List[DriverPlace]
+    Description:
+        This method retrieves the driver's place data from the API.
+    Parameters:
+        start_day (date): The start date for the data retrieval.
+        end_day (date): The end date for the data retrieval.
+    Returns:
+        List[DriverPlace]: A list of DriverPlace objects representing the driver's place data.
+    """
     view = 'drivers_place'
     cl = DriverPlace
     where = sql.SQL('WHERE date between {start_date} and {end_date}').format(
@@ -91,38 +186,69 @@ async def get_drivers_place(start_day: date, end_day: date):
 
 @app.post('/api/drivers_place')
 def set_drivers_place(data: DriverPlace):
-    """Create drivers on cars places"""
+    """
+    Endpoint to set the place for drivers.
+    Parameters:
+        data: DriverPlace - The data object containing the information of the driver's place to be set.
+    Returns:
+        list of dicts - The result of the insert operation: row ID, affected rows
+    """
     columns = ('_date', 'driver', 'car')
-    _obj = cars.BItable('drivers_place_table')
-    _obj.insert_data(columns, [data.date, data.driver_id, data.car_id])
-    return {"message": f"{data} created"}
+    columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
+    _obj = cars.CarsTable('drivers_place_table')
+    result = _obj.insert_data(columns_data)
+    _obj.db.disconnect()
+    return result
 
 
 @app.put('/api/drivers_place')
 async def put_drivers_place(data: DriverPlace):
-    """Change drivers on cars places"""
+    """
+    Update the drivers_place_table in the API using an HTTP PUT request.
+    Parameters:
+    - data: DriverPlace object representing the data to be updated in the drivers_place_table.
+    Returns:
+        list of dicts - The result of the insert operation: row ID, affected rows
+    """
     columns = ('_date', 'driver', 'car')
     condition_columns = ('id',)
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
     condition_data = dict(zip(condition_columns, [data.id, ]))
-    _obj = cars.BItable('drivers_place_table')
-    _obj.update_data(columns_data, condition_data)
-    return {"message": f"{data} updated"}
+    _obj = cars.CarsTable('drivers_place_table')
+    result = _obj.update_data(columns_data, condition_data)
+    _obj.db.disconnect()
+    return result
 
 
 @app.delete('/api/drivers_place')
 async def delete_drivers_place(data: int):
-    """Delete drivers on cars places"""
+    """
+    Delete Drivers Place
+    Deletes a drivers place from the database based on the provided data.
+    Parameters:
+    - data (int): The ID of the drivers place to be deleted.
+    Returns:
+        list of dicts - The result of the insert operation: row ID, affected rows
+    """
     condition_columns = ('id',)
     condition_data = dict(zip(condition_columns, [data, ]))
-    _obj = cars.BItable('drivers_place_table')
-    _obj.delete_data(condition_data)
-    return {"message": f"{data} deleted"}
+    _obj = cars.CarsTable('drivers_place_table')
+    result = _obj.delete_data(condition_data)
+    _obj.db.disconnect()
+    return result
 
 
 @app.get('/api/runs', response_model=List[Run])
 async def get_runs(start_day: date, end_day: date):
-    """Returns drivers on cars places actual for a given range of days"""
+    """
+    Method: get_runs
+    Description:
+    This method retrieves a list of Run objects within the specified date range.
+    Parameters:
+    - start_day (date): The start date of the range.
+    - end_day (date): The end date of the range.
+    Returns: List of runs dicts.
+    """
     view = 'runs_view'
     cl = Run
     where = sql.SQL('WHERE date_departure between {start_date} and {end_date}').format(
@@ -132,48 +258,61 @@ async def get_runs(start_day: date, end_day: date):
 
 @app.post('/api/runs')
 async def post_runs(data: Run):
-    """Create runs"""
+    """
+    Method: post_runs
+    Description:
+    This method is an endpoint for posting runs data to the '/api/runs' route. It takes a single parameter 'data'
+    of type Run. The method inserts the provided data into the 'runs' table
+    Parameters:
+    - data (Run): An object containing the run data to be inserted into the database.
+    Returns: list of dicts - The result of the insert operation: row ID, affected rows
+    """
     columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
-    _obj = cars.BItable('runs')
-    _obj.insert_data(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
-                               data.date_arrival, data.car, data.driver, data.invoice])
-    return {"message": f"{data} created"}
+    columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
+                                      data.date_arrival, data.car, data.driver, data.invoice]))
+    _obj = cars.CarsTable('runs')
+    result = _obj.insert_data(columns_data)
+    _obj.db.disconnect()
+    return result
 
 
 @app.put('/api/runs')
 async def put_runs(data: Run):
-    """Update runs"""
+    """
+    Method Name: put_runs
+    Description:
+    This method is used to update runs data in the 'runs' table. It takes a parameter 'data' of type Run, and updates
+    the columns of the 'runs' table based on the values provided in the
+    * 'data' object.
+    Parameters:
+    - data: Run
+        An object of type Run that contains the new values to be updated in the 'runs' table.
+    Returns:
+    - result: list of dicts: row ID, affected rows.
+    """
     columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
     condition_columns = ('id',)
     columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
                                       data.date_arrival, data.car, data.driver, data.invoice]))
     condition_data = dict(zip(condition_columns, [data.id, ]))
-    _obj = cars.BItable('runs')
-    _obj.update_data(columns_data, condition_data)
-    return {"message": f"{data} updated"}
+    _obj = cars.CarsTable('runs')
+    result = _obj.update_data(columns_data, condition_data)
+    _obj.db.disconnect()
+    return result
 
 
 @app.delete('/api/runs')
 async def delete_runs(data: int):
-    """Delete runs"""
+    """
+    Delete Runs
+    Deletes runs from the 'runs' table based on the given condition.
+    Parameters:
+    - data (int): The run id.
+    Returns: list of dicts: row ID, affected rows.
+    """
     condition_columns = ('id',)
     condition_data = dict(zip(condition_columns, [data, ]))
-    _obj = cars.BItable('runs')
-    _obj.delete_data(condition_data)
-    return {"message": f"{data} deleted"}
-
-#
-#
-# @app.post('/bi/post/cars_place')
-# def set_cars_place(data: CarSet):
-#     pass
-#
-#
-# @app.post('/bi/post/set_waybills')
-# def set_waybills(data: WaybillSet):
-#     pass
-#
-#
-# @app.post('/bi/post/set_tn')
-# def set_tn(data: TnSet):
-#     pass
+    _obj = cars.CarsTable('runs')
+    result = _obj.delete_data(condition_data)
+    _obj.db.disconnect()
+    return result
