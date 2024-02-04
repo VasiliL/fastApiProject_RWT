@@ -12,6 +12,7 @@ class DataBase:
         self.__connection = None
         self.__cursor = None
         self.db = db
+        self.__counter = 0
 
     @property
     def connection(self):
@@ -22,7 +23,7 @@ class DataBase:
     @property
     def cursor(self):
         if self.__cursor is None or self.__cursor.closed:
-            self.__cursor = self.connection.cursor(cursor_factory=extras.DictCursor)
+            self.__cursor = self.open_cursor(self.connection)
         return self.__cursor
 
     def open_connection(self):
@@ -31,25 +32,28 @@ class DataBase:
                                 database=credentials[self.db]['database'], user=credentials[self.db]['user'],
                                 password=credentials[self.db]['password'])
 
+    @staticmethod
+    def open_cursor(conn):
+        return conn.cursor(cursor_factory=extras.DictCursor)
+
     def load_credentials(self):
         with open(self.CREDENTIALS_FILE, 'r') as f:
             return json.load(f)
 
-    def disconnect(self):
-        if not self.__cursor.closed:
-            self.__cursor.close()
-        if not self.__connection.closed:
-            self.__connection.commit()
-            self.__connection.close()
-
     def __enter__(self):
+        self.__counter += 1
         return self.cursor
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is not None:
+        self.__counter -= 1
+        if exc_type is None:
+            self.connection.commit()
+        else:
             self.__connection.rollback()
-            self.__connection.close()
             print(exc_val)
+        if self.__counter == 0:
+            self.cursor.close()
+            self.connection.close()
 
 
 class Table(ABC):
@@ -76,9 +80,9 @@ class Table(ABC):
                     cur.execute(query)
                     result.append({'lastrowid': cur.fetchone(), 'rowcount': cur.rowcount})
         except errors.UniqueViolation as e:
-            return str(e)
+            return str('duplicate keys forbitten')
         except errors.ForeignKeyViolation as e:
-            return str(e)
+            return str('car or driver does not exist')
         return result
 
     @property
@@ -137,7 +141,6 @@ class CarsTable(Table):
                                     ).format(table_name=sql.Identifier(self.table_name),
                                              placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in self.columns))
                 cur.execute(query, row)
-            self.db.disconnect()
 
     def get_data(self, where=None):
         where_clause = where if where else sql.SQL('')
@@ -155,6 +158,16 @@ class CarsTable(Table):
         return self.dml_handler(insert)
 
     def update_data(self, columns_data, condition_data):
+        select = (sql.SQL('select {columns} from {table_name}').format(columns=sql.SQL(', ').join(
+            sql.Identifier(col) for col in columns_data.keys()), table_name=sql.Identifier(self.table_name)) +
+                  sql.SQL(' where ') +
+                  sql.SQL(' and ').join(sql.SQL('{column_name}={value}').format(
+                      column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in condition_data.items())
+                  )
+        result = self.dql_handler(select)[0][0]
+        result = {k: result[k] for k in columns_data.keys()}
+        if result == columns_data:
+            return False
         update = (sql.SQL('update {table_name} set ').format(table_name=sql.Identifier(self.table_name)) +
                   sql.SQL(', ').join(sql.SQL('{column_name}={value}').format(
                       column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in columns_data.items()) +
@@ -163,7 +176,7 @@ class CarsTable(Table):
                       column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in condition_data.items()) +
                   sql.SQL(' returning id')
                   )
-        return bool(self.dml_handler(update)[0]['rowcount'])
+        return self.dml_handler(update)
 
     def delete_data(self, condition_data):
         delete = (sql.SQL('delete from {table_name}').format(table_name=sql.Identifier(self.table_name)) +
@@ -172,7 +185,7 @@ class CarsTable(Table):
                       column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in condition_data.items()) +
                   sql.SQL(' returning id')
                   )
-        return bool(self.dml_handler(delete)[0]['rowcount'])
+        return self.dml_handler(delete)
 
 
 if __name__ == '__main__':

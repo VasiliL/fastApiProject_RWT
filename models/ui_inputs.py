@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime, date
 from psycopg2 import sql
 from typing import Optional
+from decimal import Decimal
 
 
 class MyModel(BaseModel):
@@ -60,6 +61,6 @@ class Run(MyModel, BaseModel):
     invoice: int
     invoice_document: str
     waybill: str
-    weight: float
+    weight: Decimal
     date_departure: date
     date_arrival: Optional[date]

@@ -18,29 +18,13 @@ STATIC_VIEWS = {'persons', 'cars', 'cargo', 'routes', 'counterparty', 'invoices'
 
 async def get_query(view, cl, where=None):
     """
-
     Parameters:
     - view: The name of the database view to retrieve data from. (String)
-
     - cl: An instance of a class that generates the select query for the view. (Object)
-
     - where: Optional parameter specifying the where condition for the query. (String)
-
     Returns:
     - A concatenated string of the select query and the where condition, which can be used to retrieve data from
     the specified view.
-
-    Example usage:
-    view = "employees"
-    cl = SelectQueryGenerator()
-    where = "age > 30"
-
-    query = get_query(view, cl, where)
-    print(query)
-
-    Output:
-    SELECT * FROM employees WHERE age > 30
-
     """
     select_clause = cl.generate_select_query() + sql.SQL(' from {table}').format(
         table=sql.Identifier(view))
@@ -50,18 +34,14 @@ async def get_query(view, cl, where=None):
 
 async def get_view_data(view, cl, where=None):
     """
-
     This method, get_view_data, is an asynchronous method that retrieves view data based on the provided parameters.
     It returns a list of objects based on the query results.
-
     Parameters:
     - view: The view object that represents the table or view from which the data is retrieved.
     - cl: The class that represents the object type to be returned.
     - where: An optional parameter that specifies the conditions for filtering the data.
-
     Returns:
     - A list of objects (instances of the class specified by the 'cl' parameter) based on the query results.
-
     """
     _obj = cars.CarsTable(view)
     select_clause = await get_query(view, cl, where)
@@ -71,14 +51,10 @@ async def get_view_data(view, cl, where=None):
 @app.get("/")
 async def root():
     """
-
     Root
-
     This method is responsible for handling requests to the root endpoint ("/") in the application.
-
     Returns:
         A dictionary containing the message "Hello World".
-
     """
     return {"message": "Hello World"}
 
@@ -87,18 +63,10 @@ async def root():
 def update_data(data):
     """
     Updates the data for a given table.
-
     Parameters:
-    - data (str): The name of the table to update.
-
+    - data (str): The name of the table to update Can be: 'persons', 'cars', 'invoices'.
     Returns:
     - dict: A dictionary with a message indicating the status of the update.
-
-    Example usage:
-    >>> update_data('table1')
-    {'message': 'table1 updated'}
-    >>> update_data('table3')
-    {'message': 'Can not update table3'}
     """
     if data in TABLES:
         for table in TABLES[data]:
@@ -185,30 +153,29 @@ async def get_drivers_place(start_day: date, end_day: date):
 
 
 @app.post('/api/drivers_place')
-def set_drivers_place(data: DriverPlace):
+def set_drivers_place(data: DriverPlace) -> str | int:
     """
     Endpoint to set the place for drivers.
     Parameters:
         data: DriverPlace - The data object containing the information of the driver's place to be set.
     Returns:
-        list of dicts - The result of the insert operation: row ID, affected rows
+        ID of the inserted data or error message
     """
     columns = ('_date', 'driver', 'car')
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
     _obj = cars.CarsTable('drivers_place_table')
     result = _obj.insert_data(columns_data)
-    _obj.db.disconnect()
-    return result
+    return result if type(result) is str else result[0]['lastrowid'][0]
 
 
 @app.put('/api/drivers_place')
-async def put_drivers_place(data: DriverPlace):
+async def put_drivers_place(data: DriverPlace) -> str | bool:
     """
     Update the drivers_place_table in the API using an HTTP PUT request.
     Parameters:
     - data: DriverPlace object representing the data to be updated in the drivers_place_table.
     Returns:
-        list of dicts - The result of the insert operation: row ID, affected rows
+        True if successful, False otherwise
     """
     columns = ('_date', 'driver', 'car')
     condition_columns = ('id',)
@@ -216,26 +183,26 @@ async def put_drivers_place(data: DriverPlace):
     condition_data = dict(zip(condition_columns, [data.id, ]))
     _obj = cars.CarsTable('drivers_place_table')
     result = _obj.update_data(columns_data, condition_data)
-    _obj.db.disconnect()
-    return result
+    return True if type(result) is list else result
 
 
 @app.delete('/api/drivers_place')
-async def delete_drivers_place(data: int):
+async def delete_drivers_place(data: int) -> str | bool:
     """
     Delete Drivers Place
     Deletes a drivers place from the database based on the provided data.
     Parameters:
     - data (int): The ID of the drivers place to be deleted.
-    Returns:
-        list of dicts - The result of the insert operation: row ID, affected rows
+    Returns: True if successful, False otherwise
     """
     condition_columns = ('id',)
     condition_data = dict(zip(condition_columns, [data, ]))
     _obj = cars.CarsTable('drivers_place_table')
     result = _obj.delete_data(condition_data)
-    _obj.db.disconnect()
-    return result
+    try:
+        return result if type(result) is str else bool(result[0]['rowcount'])
+    except TypeError as e:
+        return False
 
 
 @app.get('/api/runs', response_model=List[Run])
@@ -257,7 +224,7 @@ async def get_runs(start_day: date, end_day: date):
 
 
 @app.post('/api/runs')
-async def post_runs(data: Run):
+async def post_runs(data: Run) -> str | int:
     """
     Method: post_runs
     Description:
@@ -265,15 +232,14 @@ async def post_runs(data: Run):
     of type Run. The method inserts the provided data into the 'runs' table
     Parameters:
     - data (Run): An object containing the run data to be inserted into the database.
-    Returns: list of dicts - The result of the insert operation: row ID, affected rows
+    Returns: ID of the inserted data
     """
     columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
     columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
                                       data.date_arrival, data.car, data.driver, data.invoice]))
     _obj = cars.CarsTable('runs')
     result = _obj.insert_data(columns_data)
-    _obj.db.disconnect()
-    return result
+    return result if type(result) is str else result[0]['lastrowid'][0]
 
 
 @app.put('/api/runs')
@@ -288,7 +254,7 @@ async def put_runs(data: Run):
     - data: Run
         An object of type Run that contains the new values to be updated in the 'runs' table.
     Returns:
-    - result: list of dicts: row ID, affected rows.
+    - result: True if successful, False otherwise
     """
     columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
     condition_columns = ('id',)
@@ -297,8 +263,7 @@ async def put_runs(data: Run):
     condition_data = dict(zip(condition_columns, [data.id, ]))
     _obj = cars.CarsTable('runs')
     result = _obj.update_data(columns_data, condition_data)
-    _obj.db.disconnect()
-    return result
+    return True if type(result) is list else result
 
 
 @app.delete('/api/runs')
@@ -308,11 +273,13 @@ async def delete_runs(data: int):
     Deletes runs from the 'runs' table based on the given condition.
     Parameters:
     - data (int): The run id.
-    Returns: list of dicts: row ID, affected rows.
+    Returns: True if successful, False otherwise
     """
     condition_columns = ('id',)
     condition_data = dict(zip(condition_columns, [data, ]))
     _obj = cars.CarsTable('runs')
     result = _obj.delete_data(condition_data)
-    _obj.db.disconnect()
-    return result
+    try:
+        return result if type(result) is str else bool(result[0]['rowcount'])
+    except TypeError as e:
+        return False
