@@ -59,8 +59,12 @@ class Run(MyModel, BaseModel):
     car: int
     driver: int
     invoice: int
-    invoice_document: str
-    waybill: str
-    weight: Decimal
     date_departure: date
+    invoice_document: Optional[str]
+    waybill: Optional[str]
+    weight: Optional[Decimal]
     date_arrival: Optional[date]
+    reg_number: Optional[str]
+    reg_date: Optional[date]
+    acc_number: Optional[str]
+    acc_date: Optional[date]

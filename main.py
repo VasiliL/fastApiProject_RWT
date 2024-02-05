@@ -256,10 +256,12 @@ async def put_runs(data: Run):
     Returns:
     - result: True if successful, False otherwise
     """
-    columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
+    columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice',
+               'reg_number', 'reg_date', 'acc_number', 'acc_date')
     condition_columns = ('id',)
     columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
-                                      data.date_arrival, data.car, data.driver, data.invoice]))
+                                      data.date_arrival, data.car, data.driver, data.invoice, data.reg_number,
+                                      data.reg_date, data.acc_number, data.acc_date]))
     condition_data = dict(zip(condition_columns, [data.id, ]))
     _obj = cars.CarsTable('runs')
     result = _obj.update_data(columns_data, condition_data)
