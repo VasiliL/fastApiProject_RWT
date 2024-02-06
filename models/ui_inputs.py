@@ -60,11 +60,11 @@ class Run(MyModel, BaseModel):
     driver: int
     invoice: int
     date_departure: date
-    invoice_document: Optional[str]
-    waybill: Optional[str]
-    weight: Optional[Decimal]
-    date_arrival: Optional[date]
-    reg_number: Optional[str]
-    reg_date: Optional[date]
-    acc_number: Optional[str]
-    acc_date: Optional[date]
+    invoice_document: Optional[str] = None
+    waybill: Optional[str] = None
+    weight: Optional[Decimal] = None
+    date_arrival: Optional[date] = None
+    reg_number: Optional[str] = None
+    reg_date: Optional[date] = None
+    acc_number: Optional[str] = None
+    acc_date: Optional[date] = None
