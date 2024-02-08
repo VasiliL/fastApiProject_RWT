@@ -133,7 +133,8 @@ def set_drivers_place(data: DriverPlace) -> str | int:
     columns = ('_date', 'driver', 'car')
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
     _obj = cars.CarsTable('drivers_place_table')
-    result = _obj.insert_data(columns_data)
+    with _obj:
+        result = _obj.insert_data(columns_data)
     return result if type(result) is str else result[0]['lastrowid'][0]
 
 
@@ -151,7 +152,8 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
     condition_data = dict(zip(condition_columns, [data.id, ]))
     _obj = cars.CarsTable('drivers_place_table')
-    result = _obj.update_data(columns_data, condition_data)
+    with _obj:
+        result = _obj.update_data(columns_data, condition_data)
     return True if type(result) is list else result
 
 
@@ -167,7 +169,8 @@ async def delete_drivers_place(data: int) -> str | bool:
     condition_columns = ('id',)
     condition_data = dict(zip(condition_columns, [data, ]))
     _obj = cars.CarsTable('drivers_place_table')
-    result = _obj.delete_data(condition_data)
+    with _obj:
+        result = _obj.delete_data(condition_data)
     try:
         return result if type(result) is str else bool(result[0]['rowcount'])
     except TypeError as e:
@@ -207,7 +210,8 @@ async def post_runs(data: Run) -> str | int:
     columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
                                       data.date_arrival, data.car, data.driver, data.invoice]))
     _obj = cars.CarsTable('runs')
-    result = _obj.insert_data(columns_data)
+    with _obj:
+        result = _obj.insert_data(columns_data)
     return result if type(result) is str else result[0]['lastrowid'][0]
 
 
@@ -231,7 +235,8 @@ async def put_runs(data: Run):
                                       data.date_arrival, data.car, data.driver, data.invoice]))
     condition_data = dict(zip(condition_columns, [data.id, ]))
     _obj = cars.CarsTable('runs')
-    result = _obj.update_data(columns_data, condition_data)
+    with _obj:
+        result = _obj.update_data(columns_data, condition_data)
     return True if type(result) is list else result
 
 
@@ -247,7 +252,8 @@ async def delete_runs(data: int):
     condition_columns = ('id',)
     condition_data = dict(zip(condition_columns, [data, ]))
     _obj = cars.CarsTable('runs')
-    result = _obj.delete_data(condition_data)
+    with _obj:
+        result = _obj.delete_data(condition_data)
     try:
         return result if type(result) is str else bool(result[0]['rowcount'])
     except TypeError as e:

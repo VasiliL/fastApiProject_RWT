@@ -46,12 +46,12 @@ class Invoice(MyModel, BaseModel):
 
 
 class DriverPlace(MyModel, BaseModel):
-    id: int
+    id: Optional[int] = None
     date: date
     car_id: int
     driver_id: int
-    plate_number: Optional[str]
-    fio: Optional[str]
+    plate_number: Optional[str] = None
+    fio: Optional[str] = None
 
 
 class Run(MyModel, BaseModel):

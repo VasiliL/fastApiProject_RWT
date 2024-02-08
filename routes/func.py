@@ -30,5 +30,6 @@ async def get_view_data(view, cl, where=None):
     - A list of objects (instances of the class specified by the 'cl' parameter) based on the query results.
     """
     _obj = cars.CarsTable(view)
-    select_clause = await get_query(view, cl, where)
-    return [cl(**dict(row)) for row in _obj.dql_handler(select_clause)[0]]
+    with _obj:
+        select_clause = await get_query(view, cl, where)
+        return [cl(**dict(row)) for row in _obj.dql_handler(select_clause)[0]]
