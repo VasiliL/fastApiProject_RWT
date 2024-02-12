@@ -57,7 +57,7 @@ class DriverPlace(MyModel, BaseModel):
 class Run(MyModel, BaseModel):
     id: int
     car: int
-    driver: int
+    driver: Optional[int] = None
     invoice: int
     date_departure: date
     invoice_document: Optional[str] = None
