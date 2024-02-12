@@ -68,3 +68,6 @@ class Run(MyModel, BaseModel):
     reg_date: Optional[date] = None
     acc_number: Optional[str] = None
     acc_date: Optional[date] = None
+    client: Optional[str] = None
+    route: Optional[str] = None
+    cargo: Optional[str] = None
