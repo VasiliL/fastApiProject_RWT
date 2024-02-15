@@ -40,8 +40,10 @@ class Table(ABC):
     def dql_handler(self, *queries):
         result = []
         for query in queries:
+            print(self.table_cur.mogrify(query))
             self.table_cur.execute(query)
             result.append(self.table_cur.fetchall())
+            print(result)
         return result
 
     def dml_handler(self, *queries):

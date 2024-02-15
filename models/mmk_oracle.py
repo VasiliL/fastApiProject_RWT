@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime, date
 from psycopg2 import sql
-from typing import Optional
+from typing import Optional, Union, List
 from decimal import Decimal
 
 
@@ -27,7 +27,6 @@ class Invoice(BaseModel):
     str_number: str
     cargo_name: str
     car: str
-    certificates: str
     cargo_attribute: str
     cargo_tests: Optional[str] = None
     currency: str
@@ -38,8 +37,9 @@ class Invoice(BaseModel):
 
 
 class Certificate(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     certificate_name: str
-    weight_dry: Decimal
-    weight_wet: Decimal
-    link: str
+    invoice_number: Optional[str] = None
+    weight_dry: Optional[Decimal] = None
+    weight_wet: Optional[Decimal] = None
+    link: Optional[str] = None
