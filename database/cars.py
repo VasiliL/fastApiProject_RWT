@@ -42,7 +42,6 @@ class Table(ABC):
         for query in queries:
             self.table_cur.execute(query)
             result.append(self.table_cur.fetchall())
-            print(result)
         return result
 
     def dml_handler(self, *queries):
