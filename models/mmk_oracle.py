@@ -1,19 +1,7 @@
 from pydantic import BaseModel
-from datetime import datetime, date
-from psycopg2 import sql
-from typing import Optional, Union, List
+from datetime import date
+from typing import Optional
 from decimal import Decimal
-
-
-class Recipe(BaseModel):
-    recipe: str
-    recipe_date: date
-    car: str
-    cargo_name: str
-    departure_point: str
-    invoice_number: str
-    contract: str
-    offer: str
 
 
 class Invoice(BaseModel):

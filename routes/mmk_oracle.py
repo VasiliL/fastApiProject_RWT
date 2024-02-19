@@ -1,10 +1,11 @@
+from typing import List, TypeVar
 from fastapi import APIRouter
-from typing import List
-from models.mmk_oracle import Recipe, Invoice, Certificate
+from models.mmk_oracle import Invoice, Certificate
 from database import cars
 from datetime import date
 from psycopg2 import sql
-import routes.func as func
+
+T = TypeVar('T', Invoice, Certificate)
 
 router = APIRouter()
 
@@ -27,43 +28,27 @@ async def get_certificate_empty() -> List[date]:
     return result
 
 
-@router.post('/api/mmk/recipe')
-async def post_recipe(data: List[Recipe]):
-    _obj = cars.CarsTable('mmk_oracle_recipes')
+async def post_object(data: List[T], table_name: str):
+    _obj = cars.CarsTable(table_name)
     result = []
     with _obj:
-        for recipe in data:
-            _dict = recipe.dict().copy()
-            result.append(_obj.insert_data(_dict))
+        for obj in data:
+            _dict = obj.dict().copy()
+            if 'id' in _dict:
+                del _dict['id']
+            _r = _obj.insert_data(_dict)
+            result.append(True if type(_r) is list else _r)
     return result
 
 
 @router.post('/api/mmk/invoice')
 async def post_invoice(data: List[Invoice]):
-    _obj = cars.CarsTable('mmk_oracle_invoices')
-    result = []
-    with _obj:
-        for invoice in data:
-            _dict = invoice.dict().copy()
-            if 'id' in _dict:
-                del _dict['id']
-            _r = _obj.insert_data(_dict)
-            result.append(True if type(_r) is list else _r)
-    return result
+    return await post_object(data, 'mmk_oracle_invoices')
 
 
 @router.post('/api/mmk/certificate')
 async def post_certificate(data: List[Certificate]):
-    _obj = cars.CarsTable('mmk_oracle_certificate')
-    result = []
-    with _obj:
-        for certificate in data:
-            _dict = certificate.dict().copy()
-            if 'id' in _dict:
-                del _dict['id']
-            _r = _obj.insert_data(_dict)
-            result.append(True if type(_r) is list else _r)
-    return result
+    return await post_object(data, 'mmk_oracle_certificate')
 
 
 @router.put('/api/mmk/certificate')
