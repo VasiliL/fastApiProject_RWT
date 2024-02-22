@@ -12,9 +12,10 @@ async def get_query(view, cl, where=None):
     - A concatenated string of the select query and the where condition, which can be used to retrieve data from
     the specified view.
     """
-    select_clause = cl.generate_select_query() + sql.SQL(' from {table}').format(
-        table=sql.Identifier(view))
-    where_condition = where if where else sql.SQL('')
+    select_clause = cl.generate_select_query() + sql.SQL(" from {table}").format(
+        table=sql.Identifier(view)
+    )
+    where_condition = where if where else sql.SQL("")
     return select_clause + where_condition
 
 

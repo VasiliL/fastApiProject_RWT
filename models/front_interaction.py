@@ -9,7 +9,9 @@ class MyModel(BaseModel):
     @classmethod
     def generate_select_query(cls):
         column_names = cls.__annotations__.keys()
-        return sql.SQL('SELECT {}').format(sql.SQL(',').join(map(sql.Identifier, column_names)))
+        return sql.SQL("SELECT {}").format(
+            sql.SQL(",").join(map(sql.Identifier, column_names))
+        )
 
 
 class Car(MyModel, BaseModel):

@@ -8,12 +8,36 @@ import routes.func as func
 
 router = APIRouter()
 
-TABLES = {'persons': ('_reference300', '_reference155', '_reference89',),
-          'cars': ('_reference262', '_reference211', '_reference259'),
-          'invoices': ('_document350', '_document350_vt1855', '_document365_vt2454', '_reference124', '_reference207',
-                       '_reference207_vt7419', '_reference225', '_reference111', '_reference110',)}
-STATIC_VIEWS = {'persons', 'cars', 'cargo', 'routes', 'counterparty', 'invoices', 'react_drivers', 'react_cars',
-                'runs_view', }
+TABLES = {
+    "persons": (
+        "_reference300",
+        "_reference155",
+        "_reference89",
+    ),
+    "cars": ("_reference262", "_reference211", "_reference259"),
+    "invoices": (
+        "_document350",
+        "_document350_vt1855",
+        "_document365_vt2454",
+        "_reference124",
+        "_reference207",
+        "_reference207_vt7419",
+        "_reference225",
+        "_reference111",
+        "_reference110",
+    ),
+}
+STATIC_VIEWS = {
+    "persons",
+    "cars",
+    "cargo",
+    "routes",
+    "counterparty",
+    "invoices",
+    "react_drivers",
+    "react_cars",
+    "runs_view",
+}
 
 
 @router.get("/")
@@ -27,7 +51,7 @@ async def root():
     return {"message": "Hello World"}
 
 
-@router.patch('/api/update_data/{data}')
+@router.patch("/api/update_data/{data}")
 def update_data(data):
     """
     Updates the data for a given table.
@@ -46,7 +70,7 @@ def update_data(data):
         return {"message": f"Can not update {data}"}
 
 
-@router.get('/api/cars', response_model=List[Car])
+@router.get("/api/cars", response_model=List[Car])
 async def get_cars():
     """
     Get a list of cars from the API.
@@ -56,14 +80,16 @@ async def get_cars():
     Example:
         cars = get_cars()
     """
-    view = 'cars'
+    view = "cars"
     cl = Car
-    where = sql.SQL('''where car_type in ('Грузовые автомобили тягачи седельные', 'Тягачи седельные 6х4',
-     'Грузовые самосвалы 8х4')''')
+    where = sql.SQL(
+        """where car_type in ('Грузовые автомобили тягачи седельные', 'Тягачи седельные 6х4',
+     'Грузовые самосвалы 8х4')"""
+    )
     return await func.get_view_data(view, cl, where)
 
 
-@router.get('/api/drivers', response_model=List[Person])
+@router.get("/api/drivers", response_model=List[Person])
 async def get_drivers():
     """
     Function: get_drivers
@@ -74,13 +100,13 @@ async def get_drivers():
     Returns: A list of 'Person' objects.
     Example Usage: GET /api/drivers
     """
-    view = 'persons'
+    view = "persons"
     cl = Person
-    where = sql.SQL('where position = {}').format(sql.Literal('Водитель-экспедитор'))
+    where = sql.SQL("where position = {}").format(sql.Literal("Водитель-экспедитор"))
     return await func.get_view_data(view, cl, where)
 
 
-@router.get('/api/invoices', response_model=List[Invoice])
+@router.get("/api/invoices", response_model=List[Invoice])
 async def get_invoices(day: Optional[date] = None):
     """
     Get invoices based on the given day.
@@ -91,16 +117,22 @@ async def get_invoices(day: Optional[date] = None):
     - List[Invoice]
         A list of invoice objects.
     """
-    view = 'invoices'
+    view = "invoices"
     cl = Invoice
     day = day or date.today()
-    where = sql.SQL(' WHERE {day} between {departure_date} and {arrival_date}').format(
-        departure_date=sql.Identifier('departure_date'), arrival_date=sql.Identifier('arrival_date'),
-        day=sql.Literal(day.strftime('%Y-%m-%d'))) if day else None
+    where = (
+        sql.SQL(" WHERE {day} between {departure_date} and {arrival_date}").format(
+            departure_date=sql.Identifier("departure_date"),
+            arrival_date=sql.Identifier("arrival_date"),
+            day=sql.Literal(day.strftime("%Y-%m-%d")),
+        )
+        if day
+        else None
+    )
     return await func.get_view_data(view, cl, where)
 
 
-@router.get('/api/drivers_place', response_model=List[DriverPlace])
+@router.get("/api/drivers_place", response_model=List[DriverPlace])
 async def get_drivers_place(start_day: date, end_day: date):
     """
     get_drivers_place
@@ -114,14 +146,16 @@ async def get_drivers_place(start_day: date, end_day: date):
     Returns:
         List[DriverPlace]: A list of DriverPlace objects representing the driver's place data.
     """
-    view = 'drivers_place'
+    view = "drivers_place"
     cl = DriverPlace
-    where = sql.SQL('WHERE date between {start_date} and {end_date}').format(
-        start_date=sql.Literal(start_day.strftime('%Y-%m-%d')), end_date=sql.Literal(end_day.strftime('%Y-%m-%d')))
+    where = sql.SQL("WHERE date between {start_date} and {end_date}").format(
+        start_date=sql.Literal(start_day.strftime("%Y-%m-%d")),
+        end_date=sql.Literal(end_day.strftime("%Y-%m-%d")),
+    )
     return await func.get_view_data(view, cl, where)
 
 
-@router.post('/api/drivers_place')
+@router.post("/api/drivers_place")
 def set_drivers_place(data: DriverPlace) -> str | int:
     """
     Endpoint to set the place for drivers.
@@ -130,15 +164,15 @@ def set_drivers_place(data: DriverPlace) -> str | int:
     Returns:
         ID of the inserted data or error message
     """
-    columns = ('_date', 'driver', 'car')
+    columns = ("_date", "driver", "car")
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
-    _obj = cars.CarsTable('drivers_place_table')
+    _obj = cars.CarsTable("drivers_place_table")
     with _obj:
         result = _obj.insert_data(columns_data)
-    return result if type(result) is str else result[0]['lastrowid'][0]
+    return result if isinstance(result, str) else result[0]["lastrowid"][0]
 
 
-@router.put('/api/drivers_place')
+@router.put("/api/drivers_place")
 async def put_drivers_place(data: DriverPlace) -> str | bool:
     """
     Update the drivers_place_table in the API using an HTTP PUT request.
@@ -147,17 +181,24 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
     Returns:
         True if successful, False otherwise
     """
-    columns = ('_date', 'driver', 'car')
-    condition_columns = ('id',)
+    columns = ("_date", "driver", "car")
+    condition_columns = ("id",)
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
-    condition_data = dict(zip(condition_columns, [data.id, ]))
-    _obj = cars.CarsTable('drivers_place_table')
+    condition_data = dict(
+        zip(
+            condition_columns,
+            [
+                data.id,
+            ],
+        )
+    )
+    _obj = cars.CarsTable("drivers_place_table")
     with _obj:
         result = _obj.update_data(columns_data, condition_data)
-    return True if type(result) is list else result
+    return True if isinstance(result, list) else result
 
 
-@router.delete('/api/drivers_place')
+@router.delete("/api/drivers_place")
 async def delete_drivers_place(data: int) -> str | bool:
     """
     Delete Drivers Place
@@ -166,18 +207,25 @@ async def delete_drivers_place(data: int) -> str | bool:
     - data (int): The ID of the drivers place to be deleted.
     Returns: True if successful, False otherwise
     """
-    condition_columns = ('id',)
-    condition_data = dict(zip(condition_columns, [data, ]))
-    _obj = cars.CarsTable('drivers_place_table')
+    condition_columns = ("id",)
+    condition_data = dict(
+        zip(
+            condition_columns,
+            [
+                data,
+            ],
+        )
+    )
+    _obj = cars.CarsTable("drivers_place_table")
     with _obj:
         result = _obj.delete_data(condition_data)
     try:
-        return result if type(result) is str else bool(result[0]['rowcount'])
-    except TypeError as e:
+        return result if isinstance(result, str) else bool(result[0]["rowcount"])
+    except TypeError:
         return False
 
 
-@router.get('/api/runs', response_model=List[Run])
+@router.get("/api/runs", response_model=List[Run])
 async def get_runs(start_day: date, end_day: date):
     """
     Method: get_runs
@@ -188,14 +236,16 @@ async def get_runs(start_day: date, end_day: date):
     - end_day (date): The end date of the range.
     Returns: List of runs dicts.
     """
-    view = 'runs_view'
+    view = "runs_view"
     cl = Run
-    where = sql.SQL('WHERE date_departure between {start_date} and {end_date}').format(
-        start_date=sql.Literal(start_day.strftime('%Y-%m-%d')), end_date=sql.Literal(end_day.strftime('%Y-%m-%d')))
+    where = sql.SQL("WHERE date_departure between {start_date} and {end_date}").format(
+        start_date=sql.Literal(start_day.strftime("%Y-%m-%d")),
+        end_date=sql.Literal(end_day.strftime("%Y-%m-%d")),
+    )
     return await func.get_view_data(view, cl, where)
 
 
-@router.post('/api/runs')
+@router.post("/api/runs")
 async def post_runs(data: Run) -> str | int:
     """
     Method: post_runs
@@ -206,16 +256,30 @@ async def post_runs(data: Run) -> str | int:
     - data (Run): An object containing the run data to be inserted into the database.
     Returns: ID of the inserted data
     """
-    columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
-    columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
-                                      data.date_arrival, data.car, data.driver, data.invoice]))
-    _obj = cars.CarsTable('runs')
+    columns = (
+        "weight",
+        "date_departure",
+        "car",
+        "invoice",
+    )
+    columns_data = dict(
+        zip(
+            columns,
+            [
+                data.weight,
+                data.date_departure,
+                data.car,
+                data.invoice,
+            ],
+        )
+    )
+    _obj = cars.CarsTable("runs")
     with _obj:
         result = _obj.insert_data(columns_data)
-    return result if type(result) is str else result[0]['lastrowid'][0]
+    return result if isinstance(result, str) else result[0]["lastrowid"][0]
 
 
-@router.put('/api/runs')
+@router.put("/api/runs")
 async def put_runs(data: Run):
     """
     Method Name: put_runs
@@ -229,18 +293,47 @@ async def put_runs(data: Run):
     Returns:
     - result: True if successful, False otherwise
     """
-    columns = ('invoice_document', 'waybill', 'weight', 'date_departure', 'date_arrival', 'car', 'driver', 'invoice')
-    condition_columns = ('id',)
-    columns_data = dict(zip(columns, [data.invoice_document, data.waybill, data.weight, data.date_departure,
-                                      data.date_arrival, data.car, data.driver, data.invoice]))
-    condition_data = dict(zip(condition_columns, [data.id, ]))
-    _obj = cars.CarsTable('runs')
+    columns = (
+        "invoice_document",
+        "waybill",
+        "weight",
+        "date_departure",
+        "date_arrival",
+        "car",
+        "driver",
+        "invoice",
+    )
+    condition_columns = ("id",)
+    columns_data = dict(
+        zip(
+            columns,
+            [
+                data.invoice_document,
+                data.waybill,
+                data.weight,
+                data.date_departure,
+                data.date_arrival,
+                data.car,
+                data.driver,
+                data.invoice,
+            ],
+        )
+    )
+    condition_data = dict(
+        zip(
+            condition_columns,
+            [
+                data.id,
+            ],
+        )
+    )
+    _obj = cars.CarsTable("runs")
     with _obj:
         result = _obj.update_data(columns_data, condition_data)
-    return True if type(result) is list else result
+    return True if isinstance(result, list) else result
 
 
-@router.delete('/api/runs')
+@router.delete("/api/runs")
 async def delete_runs(data: int):
     """
     Delete Runs
@@ -249,12 +342,19 @@ async def delete_runs(data: int):
     - data (int): The run id.
     Returns: True if successful, False otherwise
     """
-    condition_columns = ('id',)
-    condition_data = dict(zip(condition_columns, [data, ]))
-    _obj = cars.CarsTable('runs')
+    condition_columns = ("id",)
+    condition_data = dict(
+        zip(
+            condition_columns,
+            [
+                data,
+            ],
+        )
+    )
+    _obj = cars.CarsTable("runs")
     with _obj:
         result = _obj.delete_data(condition_data)
     try:
-        return result if type(result) is str else bool(result[0]['rowcount'])
-    except TypeError as e:
+        return result if isinstance(result, str) else bool(result[0]["rowcount"])
+    except TypeError:
         return False
