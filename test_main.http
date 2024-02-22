@@ -1,21 +1,14 @@
 # Test your FastAPI endpoints
 
-PATCH http://127.0.0.1:8000/bi/update_data/cars
+
+GET http://127.0.0.1:8000/api/invoices?day=2024-02-20
 Accept: application/json
 
 ###
-
-GET http://127.0.0.1:8000/bi/get/cars
+PUT http://127.0.0.1:8000/api/drivers_place
 Accept: application/json
+Content-Type: application/json
 
-###
-
-GET http://127.0.0.1:8000/bi/get_condition/invoices?day=2024-01-30
-Accept: application/json
-
-###
-
-GET http://127.0.0.1:8000/bi/get/react_drivers
-Accept: application/json
+{"date":"2024-02-20","car_id":18,"driver_id":61,"fio":"Ахунов Алексей Анатольевич","plate_number":"О183ОМ196 MERCEDES-BENZ ACTROS 2645 LS","id":288}
 
 ###
