@@ -1,11 +1,13 @@
 from datetime import date
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from database import cars
 from models.front_interaction import Car, Person, Invoice, DriverPlace, Run
 from psycopg2 import sql
 from typing import List, Optional
 import routes.func as func
+import pandas as pd
+import io
 
 router = APIRouter()
 
@@ -15,7 +17,7 @@ TABLES = {"persons": ("_reference300", "_reference155", "_reference89"),
                  "_reference207_vt7419", "_reference225", "_reference111", "_reference110")}
 STATIC_VIEWS = {"persons", "cars", "cargo", "routes", "counterparty", "invoices", "react_drivers", "react_cars",
                 "runs_view"}
-
+MAX_FILE_SIZE = 1 * 1024 * 1024  # 1 MB
 
 @router.get("/")
 async def root():
@@ -44,9 +46,9 @@ def update_data(data: str):
             _obj = cars.CarsTable(table)
             with _obj:
                 _obj.sync()
-        return JSONResponse({"message": f"{_data} updated"})
+        return JSONResponse(status_code=200, content={"message": f"{_data} updated"})
     else:
-        return JSONResponse({"message": f"Can not update {_data}"})
+        return JSONResponse(status_code=400, content={"message": f"Can not update {_data}"})
 
 
 @router.get("/api/cars", response_model=List[Car])
@@ -153,12 +155,59 @@ def set_drivers_place(data: DriverPlace) -> str | int:
     - int: The ID of the inserted data
     - str: The error message
     """
-    columns = ("_date", "driver", "car")
-    columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
+    columns = ("date_place", "driver_id", "car_id")
+    columns_data = dict(zip(columns, [data.date_place, data.driver_id, data.car_id]))
     _obj = cars.CarsTable("drivers_place_table")
     with _obj:
         result = _obj.insert_data(columns_data)
     return result if isinstance(result, str) else result[0]["lastrowid"][0]
+
+
+async def check_xlsx_file(file: UploadFile) -> bool:
+    if file.content_type != 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+        raise HTTPException(status_code=400, detail="File must be in xlsx format")
+    if file.size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File is too big")
+    return True
+
+
+async def get_df(file):
+    content = await file.read()
+    return pd.read_excel(io.BytesIO(content))
+
+
+@router.post('/api/drivers_place/upload_xlsx')
+async def driver_places_upload_xlsx(file: UploadFile):
+    """
+    Загружает файл с расстановкой водителей на машины.
+
+    Args (necessary all):
+
+    - file (UploadFile): The file to be uploaded.
+
+    Returns (any):
+
+    - List[int|str]: The list of The ID's of the inserted data or strings of errors.
+    """
+    if check_xlsx_file(file):
+        try:
+            result = []
+            df = await get_df(file)
+            df = df.rename(columns={"Дата": "date_place", "Водитель": "driver_id", "Машина": "car_id"})
+            df = df.astype({"date_place": "datetime64[ns]", "driver_id": "int64", "car_id": "int64"})
+            df['date_place'] = df['date_place'].dt.strftime('%Y-%m-%d')
+            df = df[["date_place", "driver_id", "car_id"]]
+            _obj = cars.CarsTable("drivers_place_table")
+            with _obj:
+                for index, row in df.iterrows():
+                    _check = DriverPlace(**row.to_dict())
+                    result.append(_obj.insert_data(row.to_dict()))
+        except KeyError as e:
+            return HTTPException(status_code=400, detail=f"Должны быть столбцы: Дата, Водитель, Машина: {e}")
+        except ValueError as e:
+            return HTTPException(status_code=400, detail=f"Ошибка в данных (Дату указать в формате дд.мм.гггг, "
+                                                         f"идентификаторы машины и водителя - целые числа): {e}")
+        return result
 
 
 @router.put("/api/drivers_place")
