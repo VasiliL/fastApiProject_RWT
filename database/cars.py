@@ -64,7 +64,7 @@ class Table(ABC):
             return str("duplicate keys forbidden")
         except errors.ForeignKeyViolation:
             self.table_conn.rollback()
-            return str("car or driver does not exist")
+            return str("car or driver or invoice does not exists or defined")
         return result
 
     @staticmethod
@@ -195,10 +195,13 @@ class CarsTable(Table):
             )
             + self.create_where_statement(condition_data)
         )
-        result = self.dql_handler(select)[0][0]
-        result = {k: result[k] for k in columns_data.keys()}
-        if result == columns_data:
-            return False
+        try:
+            result = self.dql_handler(select)[0][0]
+            result = {k: result[k] for k in columns_data.keys()}
+            if result == columns_data:
+                return False
+        except IndexError:
+            return str("The record with the ID does not exist or ID is not defined.")
         update = (
             sql.SQL("update {table_name} set ").format(
                 table_name=sql.Identifier(self.table_name)

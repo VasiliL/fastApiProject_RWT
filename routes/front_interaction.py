@@ -9,45 +9,18 @@ import routes.func as func
 
 router = APIRouter()
 
-TABLES = {
-    "persons": (
-        "_reference300",
-        "_reference155",
-        "_reference89",
-    ),
+TABLES = {"persons": ("_reference300", "_reference155", "_reference89"),
     "cars": ("_reference262", "_reference211", "_reference259"),
-    "invoices": (
-        "_document350",
-        "_document350_vt1855",
-        "_document365_vt2454",
-        "_reference124",
-        "_reference207",
-        "_reference207_vt7419",
-        "_reference225",
-        "_reference111",
-        "_reference110",
-    ),
-}
-STATIC_VIEWS = {
-    "persons",
-    "cars",
-    "cargo",
-    "routes",
-    "counterparty",
-    "invoices",
-    "react_drivers",
-    "react_cars",
-    "runs_view",
-}
+    "invoices": ("_document350", "_document350_vt1855", "_document365_vt2454", "_reference124", "_reference207",
+                 "_reference207_vt7419", "_reference225", "_reference111", "_reference110")}
+STATIC_VIEWS = {"persons", "cars", "cargo", "routes", "counterparty", "invoices", "react_drivers", "react_cars",
+                "runs_view"}
 
 
 @router.get("/")
 async def root():
     """
-    Root
-    This method is responsible for handling requests to the root endpoint ("/") in the application.
-    Returns:
-        A dictionary containing the message "Hello World".
+    Typically "Hello World" for testing.
     """
     return {"message": "Hello World"}
 
@@ -55,11 +28,15 @@ async def root():
 @router.patch("/api/update_data/{data}")
 def update_data(data: str):
     """
-    Updates the data for a given table.
-    Parameters:
+    Синхронизирует данные из таблиц 1С в БД Cars
+
+    Args:
+
     - data (str): The name of the table to update Can be: 'persons', 'cars', 'invoices'.
+
     Returns:
-    - dict: A dictionary with a message indicating the status of the update.
+
+    - JSON: A message indicating the status of the update.
     """
     _data = str(data).lower()
     if _data in TABLES:
@@ -75,12 +52,13 @@ def update_data(data: str):
 @router.get("/api/cars", response_model=List[Car])
 async def get_cars():
     """
-    Get a list of cars from the API.
-    Returns a list of Car objects.
+    Возвращает список машин.
+
     Args: None
-    Returns: A list of Car objects.
-    Example:
-        cars = get_cars()
+
+    Returns:
+
+    - List[Car]: A list of Car objects.
     """
     view = "cars"
     cl = Car
@@ -94,13 +72,13 @@ async def get_cars():
 @router.get("/api/drivers", response_model=List[Person])
 async def get_drivers():
     """
-    Function: get_drivers
-    Description:
-    This function is an API endpoint that retrieves a list of drivers from the 'persons' view in the database.
-    It uses the 'Person' model to define the structure of the data.
-    Parameters: None
-    Returns: A list of 'Person' objects.
-    Example Usage: GET /api/drivers
+    Возвращает список водителей.
+
+    Args: None
+
+    Returns:
+
+    - List[Person]: A list of Person objects.
     """
     view = "persons"
     cl = Person
@@ -111,13 +89,15 @@ async def get_drivers():
 @router.get("/api/invoices", response_model=List[Invoice])
 async def get_invoices(day: Optional[date] = None):
     """
-    Get invoices based on the given day.
-    Parameters:
-    - day: Optional[date] (default=None)
-        The specific day to filter the invoices. If not provided, it will use today's date.
+    Возвращает список Заявок на перевозку, актуальных на дату запроса.
+
+    Args:
+
+    - day (Optional[date]): The date to retrieve the invoices for.
+
     Returns:
-    - List[Invoice]
-        A list of invoice objects.
+
+    - List[Invoice]: A list of Person objects.
     """
     view = "invoices"
     cl = Invoice
@@ -137,16 +117,16 @@ async def get_invoices(day: Optional[date] = None):
 @router.get("/api/drivers_place", response_model=List[DriverPlace])
 async def get_drivers_place(start_day: date, end_day: date):
     """
-    get_drivers_place
-    Method signature:
-        async def get_drivers_place(start_day: date, end_day: date) -> List[DriverPlace]
-    Description:
-        This method retrieves the driver's place data from the API.
-    Parameters:
-        start_day (date): The start date for the data retrieval.
-        end_day (date): The end date for the data retrieval.
+    Возвращает расстановку водителей на машины для всех дат, указанных в запросе.
+
+    Args:
+
+    - start_day (date): The start date of the range.
+    - end_day (date): The end date of the range.
+
     Returns:
-        List[DriverPlace]: A list of DriverPlace objects representing the driver's place data.
+
+    - List[DriverPlace]: A list of DriverPlace objects.
     """
     view = "drivers_place"
     cl = DriverPlace
@@ -160,11 +140,18 @@ async def get_drivers_place(start_day: date, end_day: date):
 @router.post("/api/drivers_place")
 def set_drivers_place(data: DriverPlace) -> str | int:
     """
-    Endpoint to set the place for drivers.
-    Parameters:
-        data: DriverPlace - The data object containing the information of the driver's place to be set.
-    Returns:
-        ID of the inserted data or error message
+    Создает запись в таблице расстановки водителей на машины.
+
+    Args (necessary all):
+
+    - date (date): The date on which the record will be created.
+    - car_id (int): The Car ID receive from cars route.
+    - driver_id (int): The Driver ID receive from drivers route.
+
+    Returns (any):
+
+    - int: The ID of the inserted data
+    - str: The error message
     """
     columns = ("_date", "driver", "car")
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
@@ -177,23 +164,24 @@ def set_drivers_place(data: DriverPlace) -> str | int:
 @router.put("/api/drivers_place")
 async def put_drivers_place(data: DriverPlace) -> str | bool:
     """
-    Update the drivers_place_table in the API using an HTTP PUT request.
-    Parameters:
-    - data: DriverPlace object representing the data to be updated in the drivers_place_table.
-    Returns:
-        True if successful, False otherwise
+    Обновляет запись в таблице расстановки водителей на машины.
+
+    Args (necessary all):
+
+    - id (int): The ID of the record to be updated.
+    - date (date): The date on which the record will be created.
+    - car_id (int): The Car ID receive from cars route.
+    - driver_id (int): The Driver ID receive from drivers route.
+
+    Returns (any):
+
+    - bool: True if successful, False if request does not change anything.
+    - str: The error message.
     """
     columns = ("_date", "driver", "car")
     condition_columns = ("id",)
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
-    condition_data = dict(
-        zip(
-            condition_columns,
-            [
-                data.id,
-            ],
-        )
-    )
+    condition_data = dict(zip(condition_columns, [data.id,]))
     _obj = cars.CarsTable("drivers_place_table")
     with _obj:
         result = _obj.update_data(columns_data, condition_data)
@@ -203,40 +191,37 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
 @router.delete("/api/drivers_place")
 async def delete_drivers_place(data: int) -> str | bool:
     """
-    Delete Drivers Place
-    Deletes a drivers place from the database based on the provided data.
-    Parameters:
-    - data (int): The ID of the drivers place to be deleted.
-    Returns: True if successful, False otherwise
+    Удаляет запись в таблице расстановки водителей на машины.
+
+    Args (necessary all):
+
+    - id (int): The ID of the record to be deleted.
+    Returns (any):
+
+    - bool: True if successful, False if request does not change anything.
+    - str: The error message.
     """
     condition_columns = ("id",)
-    condition_data = dict(
-        zip(
-            condition_columns,
-            [
-                data,
-            ],
-        )
-    )
+    condition_data = dict(zip(condition_columns, [data,]))
     _obj = cars.CarsTable("drivers_place_table")
     with _obj:
         result = _obj.delete_data(condition_data)
-    try:
-        return result if isinstance(result, str) else bool(result[0]["rowcount"])
-    except TypeError:
-        return False
+    return result if isinstance(result, str) else bool(result[0]["rowcount"])
 
 
 @router.get("/api/runs", response_model=List[Run])
 async def get_runs(start_day: date, end_day: date):
     """
-    Method: get_runs
-    Description:
-    This method retrieves a list of Run objects within the specified date range.
-    Parameters:
+    Возвращает список рейсов автомобилей для всех дат, указанных в запросе.
+
+    Args (necessary all):
+
     - start_day (date): The start date of the range.
     - end_day (date): The end date of the range.
-    Returns: List of runs dicts.
+
+    Returns (any):
+
+    - List[Run]: A list of Run objects.
     """
     view = "runs_view"
     cl = Run
@@ -250,31 +235,25 @@ async def get_runs(start_day: date, end_day: date):
 @router.post("/api/runs")
 async def post_runs(data: Run) -> str | int:
     """
-    Method: post_runs
-    Description:
-    This method is an endpoint for posting runs data to the '/api/runs' route. It takes a single parameter 'data'
-    of type Run. The method inserts the provided data into the 'runs' table
-    Parameters:
-    - data (Run): An object containing the run data to be inserted into the database.
-    Returns: ID of the inserted data
+    Создает запись в таблице рейсов.
+
+    Args (necessary all):
+
+    - date (date): The date on which the record will be created.
+    - car_id (int): The Car ID receive from cars route.
+    - invoice_id (int): The Invoice ID receive from invoices route.
+
+    Args (optional any):
+
+    - weight (Decimal): The weight of the cargo.
+
+    Returns (any):
+
+    - int: The ID of the inserted data
+    - str: The error message
     """
-    columns = (
-        "weight",
-        "date_departure",
-        "car",
-        "invoice",
-    )
-    columns_data = dict(
-        zip(
-            columns,
-            [
-                data.weight,
-                data.date_departure,
-                data.car,
-                data.invoice,
-            ],
-        )
-    )
+    columns = ("weight", "date_departure", "car", "invoice")
+    columns_data = dict(zip(columns, [data.weight, data.date_departure, data.car_id, data.invoice_id]))
     _obj = cars.CarsTable("runs")
     with _obj:
         result = _obj.insert_data(columns_data)
@@ -284,51 +263,39 @@ async def post_runs(data: Run) -> str | int:
 @router.put("/api/runs")
 async def put_runs(data: Run):
     """
-    Method Name: put_runs
-    Description:
-    This method is used to update runs data in the 'runs' table. It takes a parameter 'data' of type Run, and updates
-    the columns of the 'runs' table based on the values provided in the
-    * 'data' object.
-    Parameters:
-    - data: Run
-        An object of type Run that contains the new values to be updated in the 'runs' table.
-    Returns:
-    - result: True if successful, False otherwise
+    Изменяет запись в таблице рейсов.
+
+    Args (necessary all):
+
+    - id (int): The ID of the record to be updated.
+    - date_departure (date): The new date of the record.
+    - car_id (int): The Car ID receive from cars route.
+    - invoice_id (int): The Invoice ID receive from invoices route.
+
+    Args (optional any):
+
+    - driver_id (int): The Driver ID receive from drivers route.
+    - weight (Decimal): The weight of the cargo.
+    - waybill (str): The waybill number.
+    - invoice_document (str): The invoice document number.
+    - date_arrival (date): The date of run arrival.
+    - reg_number (str): The accountancy registry number.
+    - reg_date (date): The accountancy registry date.
+    - acc_number (str): The accountancy invoice number.
+    - acc_date (date): The accountancy invoice date.
+
+    Returns (any):
+
+    - bool: True if successful, False if request does not change anything.
+    - str: The error message.
     """
-    columns = (
-        "invoice_document",
-        "waybill",
-        "weight",
-        "date_departure",
-        "date_arrival",
-        "car",
-        "driver",
-        "invoice",
-    )
+    columns = ("date_departure", "car_id", "invoice_id", "driver_id", "weight", "waybill", "invoice_document",
+               "date_arrival", "reg_number", "reg_date", "acc_number", "acc_date")
     condition_columns = ("id",)
-    columns_data = dict(
-        zip(
-            columns,
-            [
-                data.invoice_document,
-                data.waybill,
-                data.weight,
-                data.date_departure,
-                data.date_arrival,
-                data.car,
-                data.driver,
-                data.invoice,
-            ],
-        )
-    )
-    condition_data = dict(
-        zip(
-            condition_columns,
-            [
-                data.id,
-            ],
-        )
-    )
+    columns_data = dict(zip(columns, [data.date_departure, data.car_id, data.invoice_id, data.driver_id, data.weight,
+                                        data.waybill, data.invoice_document, data.date_arrival, data.reg_number,
+                                        data.reg_date, data.acc_number, data.acc_date]))
+    condition_data = dict(zip(condition_columns, [data.id,]))
     _obj = cars.CarsTable("runs")
     with _obj:
         result = _obj.update_data(columns_data, condition_data)
@@ -338,25 +305,20 @@ async def put_runs(data: Run):
 @router.delete("/api/runs")
 async def delete_runs(data: int):
     """
-    Delete Runs
-    Deletes runs from the 'runs' table based on the given condition.
-    Parameters:
-    - data (int): The run id.
-    Returns: True if successful, False otherwise
+    Удаляет запись в таблице рейсов.
+
+    Args (necessary all):
+
+    - id (int): The ID of the record to be deleted.
+
+    Returns (any):
+
+    - bool: True if successful, False if request does not change anything.
+    - str: The error message.
     """
     condition_columns = ("id",)
-    condition_data = dict(
-        zip(
-            condition_columns,
-            [
-                data,
-            ],
-        )
-    )
+    condition_data = dict(zip(condition_columns, [data, ]))
     _obj = cars.CarsTable("runs")
     with _obj:
         result = _obj.delete_data(condition_data)
-    try:
-        return result if isinstance(result, str) else bool(result[0]["rowcount"])
-    except TypeError:
-        return False
+    return result if isinstance(result, str) else bool(result[0]["rowcount"])

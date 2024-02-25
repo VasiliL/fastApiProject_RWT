@@ -3,6 +3,6 @@ from routes.front_interaction import router as front
 from fastapi import FastAPI
 
 
-app = FastAPI()
+app = FastAPI(redoc_url=None)
 app.include_router(mmk_router)
 app.include_router(front)
