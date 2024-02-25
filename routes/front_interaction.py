@@ -52,7 +52,7 @@ async def root():
 
 
 @router.patch("/api/update_data/{data}")
-def update_data(data):
+def update_data(data: str):
     """
     Updates the data for a given table.
     Parameters:
@@ -60,14 +60,15 @@ def update_data(data):
     Returns:
     - dict: A dictionary with a message indicating the status of the update.
     """
-    if data in TABLES:
-        for table in TABLES[data]:
+    _data = str(data).lower()
+    if _data in TABLES:
+        for table in TABLES[_data]:
             _obj = cars.CarsTable(table)
             with _obj:
                 _obj.sync()
-        return {"message": f"{data} updated"}
+        return {"message": f"{_data} updated"}
     else:
-        return {"message": f"Can not update {data}"}
+        return {"message": f"Can not update {_data}"}
 
 
 @router.get("/api/cars", response_model=List[Car])

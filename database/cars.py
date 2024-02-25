@@ -10,7 +10,6 @@ class DataBase:
 
     def __init__(self, db):
         self.db = db
-        self.__counter = 0
 
     def open_connection(self):
         credentials = self.load_credentials()
@@ -67,6 +66,11 @@ class Table(ABC):
             self.table_conn.rollback()
             return str("car or driver does not exist")
         return result
+
+    @staticmethod
+    def create_where_statement(conditions: dict) -> sql.Composed:
+        return sql.SQL(" WHERE ") + sql.SQL(" and ").join(sql.SQL("{column_name}={value}").format(
+            column_name=sql.Identifier(k), value=sql.Literal(v)) for k, v in conditions.items())
 
     @property
     def columns(self):
@@ -189,13 +193,7 @@ class CarsTable(Table):
                 ),
                 table_name=sql.Identifier(self.table_name),
             )
-            + sql.SQL(" where ")
-            + sql.SQL(" and ").join(
-                sql.SQL("{column_name}={value}").format(
-                    column_name=sql.Identifier(k), value=sql.Literal(v)
-                )
-                for k, v in condition_data.items()
-            )
+            + self.create_where_statement(condition_data)
         )
         result = self.dql_handler(select)[0][0]
         result = {k: result[k] for k in columns_data.keys()}
@@ -211,13 +209,7 @@ class CarsTable(Table):
                 )
                 for k, v in columns_data.items()
             )
-            + sql.SQL(" WHERE ")
-            + sql.SQL(" and ").join(
-                sql.SQL("{column_name}={value}").format(
-                    column_name=sql.Identifier(k), value=sql.Literal(v)
-                )
-                for k, v in condition_data.items()
-            )
+            + self.create_where_statement(condition_data)
             + sql.SQL(" returning id")
         )
         return self.dml_handler(update)
@@ -227,17 +219,7 @@ class CarsTable(Table):
             sql.SQL("delete from {table_name}").format(
                 table_name=sql.Identifier(self.table_name)
             )
-            + sql.SQL(" WHERE ")
-            + sql.SQL(" and ").join(
-                sql.SQL("{column_name}={value}").format(
-                    column_name=sql.Identifier(k), value=sql.Literal(v)
-                )
-                for k, v in condition_data.items()
-            )
+            + self.create_where_statement(condition_data)
             + sql.SQL(" returning id")
         )
         return self.dml_handler(delete)
-
-
-if __name__ == "__main__":
-    pass
