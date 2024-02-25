@@ -1,5 +1,6 @@
 from datetime import date
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from database import cars
 from models.front_interaction import Car, Person, Invoice, DriverPlace, Run
 from psycopg2 import sql
@@ -66,9 +67,9 @@ def update_data(data: str):
             _obj = cars.CarsTable(table)
             with _obj:
                 _obj.sync()
-        return {"message": f"{_data} updated"}
+        return JSONResponse({"message": f"{_data} updated"})
     else:
-        return {"message": f"Can not update {_data}"}
+        return JSONResponse({"message": f"Can not update {_data}"})
 
 
 @router.get("/api/cars", response_model=List[Car])
