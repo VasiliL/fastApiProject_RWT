@@ -166,9 +166,10 @@ def set_drivers_place(data: DriverPlace) -> str | int:
 async def check_xlsx_file(file: UploadFile) -> bool:
     if file.content_type != 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
         raise HTTPException(status_code=400, detail="File must be in xlsx format")
-    if file.size > MAX_FILE_SIZE:
+    elif file.size > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File is too big")
-    return True
+    else:
+        return True
 
 
 async def get_df(file):
@@ -189,7 +190,7 @@ async def driver_places_upload_xlsx(file: UploadFile):
 
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
-    if check_xlsx_file(file):
+    if await check_xlsx_file(file):
         try:
             result = []
             df = await get_df(file)
