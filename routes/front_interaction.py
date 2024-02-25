@@ -180,7 +180,7 @@ async def get_df(file):
 @router.post('/api/drivers_place/upload_xlsx')
 async def driver_places_upload_xlsx(file: UploadFile):
     """
-    Загружает файл с расстановкой водителей на машины.
+    Загружает файл с расстановкой водителей на машины. В файле должны быть столбцы: Дата, Водитель, Машина.
 
     Args (necessary all):
 
