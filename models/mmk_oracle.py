@@ -27,6 +27,7 @@ class Invoice(BaseModel):
 class Certificate(BaseModel):
     id: Optional[int] = None
     certificate_name: str
+    date_cert: Optional[date] = None
     invoice_number: Optional[str] = None
     weight_dry: Optional[Decimal] = None
     weight_wet: Optional[Decimal] = None

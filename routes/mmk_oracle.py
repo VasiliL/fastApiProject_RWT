@@ -56,28 +56,15 @@ async def post_certificate(data: List[Certificate]):
 @router.put("/api/mmk/certificate")
 async def put_certificate(data: List[Certificate]):
     _obj = sql_handler.CarsTable("mmk_oracle_certificate")
-    columns = ("weight_dry", "weight_wet", "link")
+    columns = ("weight_dry", "weight_wet", "link", "date_cert")
     condition_columns = ("certificate_name",)
     result = []
     with _obj:
         for certificate in data:
             columns_data = dict(
-                zip(
-                    columns,
-                    [certificate.weight_dry, certificate.weight_wet, certificate.link],
-                )
-            )
-            columns_data = dict(
-                {k: v for k, v in columns_data.items() if v is not None}
-            )
-            condition_data = dict(
-                zip(
-                    condition_columns,
-                    [
-                        certificate.certificate_name,
-                    ],
-                )
-            )
+                zip(columns, [certificate.weight_dry, certificate.weight_wet, certificate.link, certificate.date_cert]))
+            columns_data = dict({k: v for k, v in columns_data.items() if v is not None})
+            condition_data = dict(zip(condition_columns, [certificate.certificate_name,]))
             try:
                 result.append(_obj.update_data(columns_data, condition_data))
             except IndexError as e:
