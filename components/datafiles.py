@@ -1,6 +1,7 @@
 from fastapi import UploadFile, HTTPException
 from abc import ABC
 import pandas as pd
+import numpy as np
 import io
 
 
@@ -42,17 +43,28 @@ class FileXLSX(ABC):
 
 
 class DriverPlacesDF(FileXLSX, ABC):
-    def __init__(self, file: UploadFile):
+    def __init__(self, file: UploadFile, method: str = 'POST'):
         super().__init__()
         self.file = file
-        self.method = 'POST'
+        self.method = method
 
     async def sanityze_df(self, df: pd.DataFrame):
         try:
-            df = df.rename(columns={"Дата": "date_place", "Водитель": "driver_id", "Машина": "car_id"})
-            df = df.astype({"date_place": "datetime64[ns]", "driver_id": "int64", "car_id": "int64"})
-            df['date_place'] = df['date_place'].dt.strftime('%Y-%m-%d')
-            df = df[["date_place", "driver_id", "car_id"]]
+            match self.method:
+                case 'POST':
+                    df = df.rename(columns={"Дата": "date_place", "Водитель": "driver_id", "Машина": "car_id"})
+                    df = df.dropna(subset=["date_place", "driver_id", "car_id"], how="any")
+                    df = df.astype({"date_place": "datetime64[ns]", "driver_id": "int64", "car_id": "int64"})
+                    df['date_place'] = df['date_place'].dt.strftime('%Y-%m-%d')
+                    df = df[["date_place", "driver_id", "car_id"]]
+                case 'PUT':
+                    df = df.rename(columns={"ID": "id", "Дата": "date_place", "Водитель": "driver_id",
+                                            "Машина": "car_id"})
+                    df = df.dropna(subset=["id", "date_place", "driver_id", "car_id"], how="any")
+                    df = df.astype({"id": "int64", "date_place": "datetime64[ns]", "driver_id": "int64",
+                                    "car_id": "int64"})
+                    df['date_place'] = df['date_place'].dt.strftime('%Y-%m-%d')
+                    df = df[["id", "date_place", "driver_id", "car_id"]]
             self.cleaned_df = True
             return df
         except KeyError as e:
@@ -61,26 +73,39 @@ class DriverPlacesDF(FileXLSX, ABC):
             raise HTTPException(status_code=400, detail=f"Ошибка в данных (Дату указать в формате дд.мм.гггг, "
                                                         f"идентификаторы машины и водителя - целые числа): {e}")
 
-    async def sanityze_post(self, df: pd.DataFrame):
-        pass
-
-    async def sanityze_put(self, df: pd.DataFrame):
-        pass
-
 
 class RunsDF(FileXLSX, ABC):
-    def __init__(self, file: UploadFile):
+    def __init__(self, file: UploadFile, method: str = 'POST'):
         super().__init__()
         self.file = file
+        self.method = method
 
     async def sanityze_df(self, df: pd.DataFrame):
         try:
-            df = df.rename(columns={"Дата": "date_departure", "Машина": "car_id", "Заявка": "invoice_id",
-                                    "Вес": "weight"})
-            df = df.astype({"date_departure": "datetime64[ns]", "car_id": "int64", "invoice_id": "int64",
-                            "weight": "float64"})
-            df['date_departure'] = df['date_departure'].dt.strftime('%Y-%m-%d')
-            df = df[["date_place", "car_id", "invoice_id", "weight"]]
+            match self.method:
+                case 'POST':
+                    df = df.rename(columns={"Дата отправления": "date_departure", "Машина": "car_id",
+                                            "Заявка": "invoice_id", "Вес": "weight"})
+                    df = df.astype({"date_departure": "datetime64[ns]", "car_id": "int64", "invoice_id": "int64",
+                                    "weight": "float64"})
+                    df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
+                    df = df.replace(np.nan, None)
+                    df['date_departure'] = df['date_departure'].dt.strftime('%Y-%m-%d')
+                    df = df[["date_departure", "car_id", "invoice_id", "weight"]]
+                case 'PUT':
+                    df = df.rename(columns={"ID": "id", "Дата отправления": "date_departure", "Машина": "car_id",
+                                            "Заявка": "invoice_id", "Вес": "weight", "ПЛ": "waybill",
+                                            "ТН": "invoice_document", "Дата прибытия": "date_arrival",
+                                            "Номер реестра": "reg_number", "Дата реестра": "reg_date",
+                                            "Номер УПД": "acc_number", "Дата УПД": "acc_date"})
+                    df = df.astype({"id": "int64", "date_departure": "datetime64[ns]", "car_id": "int64",
+                                    "invoice_id": "int64", "weight": "float64", "waybill": "str",
+                                    "invoice_document": "str", "date_arrival": "datetime64[ns]", "reg_number": "str",
+                                    "reg_date": "datetime64[ns]", "acc_number": "str", "acc_date": "datetime64[ns]"})
+                    df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
+                    df['date_departure'] = df['date_departure'].dt.strftime('%Y-%m-%d')
+                    df = df[["id", "date_departure", "car_id", "invoice_id", "weight", "waybill", "invoice_document",
+                             "date_arrival", "reg_number", "reg_date", "acc_number", "acc_date"]]
             self.cleaned_df = True
             return df
         except KeyError as e:

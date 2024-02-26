@@ -1,3 +1,7 @@
+from typing import List
+
+import numpy as np
+import pandas as pd
 import psycopg2
 from psycopg2 import sql, extras, errors
 import json
@@ -105,7 +109,7 @@ class Table(ABC):
     def __enter__(self):
         self.table_conn = self.db.open_connection()
         self.table_cur = self.db.open_cursor(self.table_conn)
-        return self.table_cur
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
@@ -185,6 +189,16 @@ class CarsTable(Table):
         )
         return self.dml_handler(insert)
 
+    def insert_multiple_data(self, df: pd.DataFrame):
+        result = []
+        for index, row in df.iterrows():
+            _result = self.insert_data(row.to_dict())
+            if isinstance(_result, list):
+                result += _result
+            else:
+                result.append(_result)
+        return result
+
     def update_data(self, columns_data, condition_data):
         select = (
             sql.SQL("select {columns} from {table_name}").format(
@@ -216,6 +230,19 @@ class CarsTable(Table):
             + sql.SQL(" returning id")
         )
         return self.dml_handler(update)
+
+    def update_multiple_data(self, df: pd.DataFrame, condition_data: List[str]):
+        result = []
+        for index, row in df.iterrows():
+            row = row.replace("nan", pd.NA).dropna()
+            condition_dict = row[condition_data].to_dict()
+            data_dict = row.drop(row[condition_data].index).to_dict()
+            _result = self.update_data(data_dict, condition_dict)
+            if isinstance(_result, list):
+                result += _result
+            else:
+                result.append(_result)
+        return result
 
     def delete_data(self, condition_data):
         delete = (

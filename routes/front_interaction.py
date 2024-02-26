@@ -1,7 +1,7 @@
 from datetime import date
 from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
-from database import cars
+from database import sql_handler
 from models.front_interaction import Car, Person, Invoice, DriverPlace, Run
 from psycopg2 import sql
 from typing import List, Optional
@@ -43,8 +43,7 @@ def update_data(data: str):
     _data = str(data).lower()
     if _data in TABLES:
         for table in TABLES[_data]:
-            _obj = cars.CarsTable(table)
-            with _obj:
+            with sql_handler.CarsTable(table) as _obj:
                 _obj.sync()
         return JSONResponse(status_code=200, content={"message": f"{_data} updated"})
     else:
@@ -157,8 +156,7 @@ def set_drivers_place(data: DriverPlace) -> str | int:
     """
     columns = ("date_place", "driver_id", "car_id")
     columns_data = dict(zip(columns, [data.date_place, data.driver_id, data.car_id]))
-    _obj = cars.CarsTable("drivers_place_table")
-    with _obj:
+    with sql_handler.CarsTable("drivers_place_table") as _obj:
         result = _obj.insert_data(columns_data)
     return result if isinstance(result, str) else result[0]["lastrowid"][0]
 
@@ -181,7 +179,8 @@ async def post_driver_places_upload_xlsx(file: UploadFile):
         places = await DriverPlacesDF(file).df
     except HTTPException as e:
         return e
-    result = await func.write_df_to_sql(places, DriverPlace, "drivers_place_table")
+    with sql_handler.CarsTable("drivers_place_table") as _obj:
+        result = _obj.insert_multiple_data(places)
     return JSONResponse(status_code=200, content=result)
 
 
@@ -206,8 +205,7 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
     condition_columns = ("id",)
     columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
     condition_data = dict(zip(condition_columns, [data.id,]))
-    _obj = cars.CarsTable("drivers_place_table")
-    with _obj:
+    with sql_handler.CarsTable("drivers_place_table") as _obj:
         result = _obj.update_data(columns_data, condition_data)
     return True if isinstance(result, list) else result
 
@@ -228,12 +226,13 @@ async def put_driver_places_upload_xlsx(file: UploadFile):
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
     try:
-        places = DriverPlacesDF(file)
+        places = DriverPlacesDF(file, method='PUT')
         places.MAX_FILE_SIZE = 15 * 1024 # 15kB
         places_df = await places.df
     except HTTPException as e:
         return e
-    result = await func.write_df_to_sql(places, DriverPlace, "drivers_place_table")
+    with sql_handler.CarsTable("drivers_place_table") as _obj:
+        result = _obj.update_multiple_data(places_df, ["id"])
     return JSONResponse(status_code=200, content=result)
 
 
@@ -252,8 +251,7 @@ async def delete_drivers_place(data: int) -> str | bool:
     """
     condition_columns = ("id",)
     condition_data = dict(zip(condition_columns, [data,]))
-    _obj = cars.CarsTable("drivers_place_table")
-    with _obj:
+    with sql_handler.CarsTable("drivers_place_table") as _obj:
         result = _obj.delete_data(condition_data)
     return result if isinstance(result, str) else bool(result[0]["rowcount"])
 
@@ -303,8 +301,7 @@ async def post_runs(data: Run) -> str | int:
     """
     columns = ("weight", "date_departure", "car", "invoice")
     columns_data = dict(zip(columns, [data.weight, data.date_departure, data.car_id, data.invoice_id]))
-    _obj = cars.CarsTable("runs")
-    with _obj:
+    with sql_handler.CarsTable("runs") as _obj:
         result = _obj.insert_data(columns_data)
     return result if isinstance(result, str) else result[0]["lastrowid"][0]
 
@@ -345,14 +342,13 @@ async def put_runs(data: Run):
                                         data.waybill, data.invoice_document, data.date_arrival, data.reg_number,
                                         data.reg_date, data.acc_number, data.acc_date]))
     condition_data = dict(zip(condition_columns, [data.id,]))
-    _obj = cars.CarsTable("runs")
-    with _obj:
+    with sql_handler.CarsTable("runs") as _obj:
         result = _obj.update_data(columns_data, condition_data)
     return True if isinstance(result, list) else result
 
 
 @router.post('/api/runs/upload_xlsx')
-async def runs_upload_xlsx_slim(file: UploadFile):
+async def runs_upload_xlsx(file: UploadFile):
     """
     Загружает краткую версию файла с Рейсами.
     В файле должны быть столбцы: Дата отправления, Машина, Заявка, Вес (опционально).
@@ -370,7 +366,35 @@ async def runs_upload_xlsx_slim(file: UploadFile):
         runs = await RunsDF(file).df
     except HTTPException as e:
         return e
-    result = await func.write_df_to_sql(runs, Run, "runs")
+    with sql_handler.CarsTable("runs") as _obj:
+        result = _obj.insert_multiple_data(runs)
+    return JSONResponse(status_code=200, content=result)
+
+@router.put('/api/runs/upload_xlsx')
+async def runs_upload_xlsx(file: UploadFile):
+    """
+    Загружает полную версию файла с Рейсами.
+    В файле должны быть столбцы: ID, Дата отправления, Машина, Заявка, Вес, ПЛ, ТН, Дата прибытия,
+    Номер реестра, Дата реестра, Номер УПД, Дата УПД.
+    По данным в файле будут изменены записи с соответствующим ID на данные из файла.
+    Максимальный размер файла для загрузки - 150 кБ
+
+    Args (necessary all):
+
+    - file (UploadFile): The file to be uploaded.
+
+    Returns (any):
+
+    - List[int|str]: The list of The ID's of the inserted data or strings of errors.
+    """
+    try:
+        places = RunsDF(file, method='PUT')
+        places.MAX_FILE_SIZE = 150 * 1024 # 150kB
+        places_df = await places.df
+    except HTTPException as e:
+        return e
+    with sql_handler.CarsTable("runs") as _obj:
+        result = _obj.update_multiple_data(places_df, ["id"])
     return JSONResponse(status_code=200, content=result)
 
 
@@ -390,7 +414,7 @@ async def delete_runs(data: int):
     """
     condition_columns = ("id",)
     condition_data = dict(zip(condition_columns, [data, ]))
-    _obj = cars.CarsTable("runs")
+    _obj = sql_handler.CarsTable("runs")
     with _obj:
         result = _obj.delete_data(condition_data)
     return result if isinstance(result, str) else bool(result[0]["rowcount"])

@@ -1,5 +1,5 @@
-from database import cars
 from psycopg2 import sql
+from database import sql_handler
 
 
 async def get_query(view, cl, where=None):
@@ -30,17 +30,7 @@ async def get_view_data(view, cl, where=None):
     Returns:
     - A list of objects (instances of the class specified by the 'cl' parameter) based on the query results.
     """
-    _obj = cars.CarsTable(view)
+    _obj = sql_handler.CarsTable(view)
     with _obj:
         select_clause = await get_query(view, cl, where)
         return [cl(**dict(row)) for row in _obj.dql_handler(select_clause)[0]]
-
-
-async def write_df_to_sql(df, cl, table):
-    result = []
-    _obj = cars.CarsTable(table)
-    with _obj:
-        for index, row in df.iterrows():
-            _check = cl(**row.to_dict())
-            result.append(_obj.insert_data(row.to_dict()))
-    return result
