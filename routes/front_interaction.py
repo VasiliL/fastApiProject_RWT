@@ -387,6 +387,7 @@ async def runs_upload_xlsx(file: UploadFile):
 
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
+    # Долг: ложно проходит проверку на необходимость обновления данных в БД из-за разницы в типах данных (datetime64[ns] и date)
     try:
         places = RunsDF(file, method='PUT')
         places.MAX_FILE_SIZE = 150 * 1024 # 150kB
