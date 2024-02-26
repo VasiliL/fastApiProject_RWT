@@ -5,9 +5,9 @@ from database import cars
 from models.front_interaction import Car, Person, Invoice, DriverPlace, Run
 from psycopg2 import sql
 from typing import List, Optional
-import routes.func as func
-import pandas as pd
-import io
+import components.func as func
+from components.datafiles import DriverPlacesDF, RunsDF
+
 
 router = APIRouter()
 
@@ -17,7 +17,7 @@ TABLES = {"persons": ("_reference300", "_reference155", "_reference89"),
                  "_reference207_vt7419", "_reference225", "_reference111", "_reference110")}
 STATIC_VIEWS = {"persons", "cars", "cargo", "routes", "counterparty", "invoices", "react_drivers", "react_cars",
                 "runs_view"}
-MAX_FILE_SIZE = 1 * 1024 * 1024  # 1 MB
+
 
 @router.get("/")
 async def root():
@@ -163,24 +163,11 @@ def set_drivers_place(data: DriverPlace) -> str | int:
     return result if isinstance(result, str) else result[0]["lastrowid"][0]
 
 
-async def check_xlsx_file(file: UploadFile) -> bool:
-    if file.content_type != 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-        raise HTTPException(status_code=400, detail="File must be in xlsx format")
-    elif file.size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File is too big")
-    else:
-        return True
-
-
-async def get_df(file):
-    content = await file.read()
-    return pd.read_excel(io.BytesIO(content))
-
-
 @router.post('/api/drivers_place/upload_xlsx')
-async def driver_places_upload_xlsx(file: UploadFile):
+async def post_driver_places_upload_xlsx(file: UploadFile):
     """
     Загружает файл с расстановкой водителей на машины. В файле должны быть столбцы: Дата, Водитель, Машина.
+    По данным в файле будут созданы новые записи.
 
     Args (necessary all):
 
@@ -190,25 +177,12 @@ async def driver_places_upload_xlsx(file: UploadFile):
 
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
-    if await check_xlsx_file(file):
-        try:
-            result = []
-            df = await get_df(file)
-            df = df.rename(columns={"Дата": "date_place", "Водитель": "driver_id", "Машина": "car_id"})
-            df = df.astype({"date_place": "datetime64[ns]", "driver_id": "int64", "car_id": "int64"})
-            df['date_place'] = df['date_place'].dt.strftime('%Y-%m-%d')
-            df = df[["date_place", "driver_id", "car_id"]]
-            _obj = cars.CarsTable("drivers_place_table")
-            with _obj:
-                for index, row in df.iterrows():
-                    _check = DriverPlace(**row.to_dict())
-                    result.append(_obj.insert_data(row.to_dict()))
-        except KeyError as e:
-            return HTTPException(status_code=400, detail=f"Должны быть столбцы: Дата, Водитель, Машина: {e}")
-        except ValueError as e:
-            return HTTPException(status_code=400, detail=f"Ошибка в данных (Дату указать в формате дд.мм.гггг, "
-                                                         f"идентификаторы машины и водителя - целые числа): {e}")
-        return result
+    try:
+        places = await DriverPlacesDF(file).df
+    except HTTPException as e:
+        return e
+    result = await func.write_df_to_sql(places, DriverPlace, "drivers_place_table")
+    return JSONResponse(status_code=200, content=result)
 
 
 @router.put("/api/drivers_place")
@@ -236,6 +210,31 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
     with _obj:
         result = _obj.update_data(columns_data, condition_data)
     return True if isinstance(result, list) else result
+
+
+@router.put('/api/drivers_place/upload_xlsx')
+async def put_driver_places_upload_xlsx(file: UploadFile):
+    """
+    Загружает файл с расстановкой водителей на машины. В файле должны быть столбцы: ID, Дата, Водитель, Машина.
+    По данным в файле будут изменены записи с соответствующим ID на данные из файла.
+    Максимальный размер файла для загрузки - 15 кБ
+
+    Args (necessary all):
+
+    - file (UploadFile): The file to be uploaded.
+
+    Returns (any):
+
+    - List[int|str]: The list of The ID's of the inserted data or strings of errors.
+    """
+    try:
+        places = DriverPlacesDF(file)
+        places.MAX_FILE_SIZE = 15 * 1024 # 15kB
+        places_df = await places.df
+    except HTTPException as e:
+        return e
+    result = await func.write_df_to_sql(places, DriverPlace, "drivers_place_table")
+    return JSONResponse(status_code=200, content=result)
 
 
 @router.delete("/api/drivers_place")
@@ -350,6 +349,29 @@ async def put_runs(data: Run):
     with _obj:
         result = _obj.update_data(columns_data, condition_data)
     return True if isinstance(result, list) else result
+
+
+@router.post('/api/runs/upload_xlsx')
+async def runs_upload_xlsx_slim(file: UploadFile):
+    """
+    Загружает краткую версию файла с Рейсами.
+    В файле должны быть столбцы: Дата отправления, Машина, Заявка, Вес (опционально).
+    По данным в файле будут созданы новые записи.
+
+    Args (necessary all):
+
+    - file (UploadFile): The file to be uploaded.
+
+    Returns (any):
+
+    - List[int|str]: The list of The ID's of the inserted data or strings of errors.
+    """
+    try:
+        runs = await RunsDF(file).df
+    except HTTPException as e:
+        return e
+    result = await func.write_df_to_sql(runs, Run, "runs")
+    return JSONResponse(status_code=200, content=result)
 
 
 @router.delete("/api/runs")

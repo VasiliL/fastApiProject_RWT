@@ -41,8 +41,8 @@ class Invoice(MyModel, BaseModel):
     client: str
     route: str
     cargo: str
-    weight: float
-    price: float
+    weight: Decimal
+    price: Decimal
     departure_date: datetime
     arrival_date: datetime
 

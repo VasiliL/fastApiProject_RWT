@@ -34,3 +34,13 @@ async def get_view_data(view, cl, where=None):
     with _obj:
         select_clause = await get_query(view, cl, where)
         return [cl(**dict(row)) for row in _obj.dql_handler(select_clause)[0]]
+
+
+async def write_df_to_sql(df, cl, table):
+    result = []
+    _obj = cars.CarsTable(table)
+    with _obj:
+        for index, row in df.iterrows():
+            _check = cl(**row.to_dict())
+            result.append(_obj.insert_data(row.to_dict()))
+    return result
