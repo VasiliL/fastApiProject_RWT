@@ -1,7 +1,7 @@
 from typing import List, TypeVar
 from fastapi import APIRouter
 from models.mmk_oracle import Invoice, Certificate
-from database import cars
+from database import sql_handler
 from datetime import date
 from psycopg2 import sql
 
@@ -19,7 +19,7 @@ async def about_section():
 async def get_certificate_empty() -> List[date]:
     """Get dates of invoices where certificates have no Yandex disk link.
     It means that the certificate has not downloads from MMK yet."""
-    _obj = cars.CarsTable("mmk_oracle_certificate")
+    _obj = sql_handler.CarsTable("mmk_oracle_certificate")
     query = sql.SQL(
         "select distinct i.invoice_date from mmk_oracle_certificate c join mmk_oracle_invoices i "
         "on c.invoice_number = i.invoice_number where c.link is null order by i.invoice_date;"
@@ -31,7 +31,7 @@ async def get_certificate_empty() -> List[date]:
 
 
 async def post_object(data: List[T], table_name: str):
-    _obj = cars.CarsTable(table_name)
+    _obj = sql_handler.CarsTable(table_name)
     result = []
     with _obj:
         for obj in data:
@@ -55,7 +55,7 @@ async def post_certificate(data: List[Certificate]):
 
 @router.put("/api/mmk/certificate")
 async def put_certificate(data: List[Certificate]):
-    _obj = cars.CarsTable("mmk_oracle_certificate")
+    _obj = sql_handler.CarsTable("mmk_oracle_certificate")
     columns = ("weight_dry", "weight_wet", "link")
     condition_columns = ("certificate_name",)
     result = []
