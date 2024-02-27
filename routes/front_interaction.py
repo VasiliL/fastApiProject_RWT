@@ -132,7 +132,7 @@ async def get_drivers_place(start_day: date, end_day: date):
     """
     view = "drivers_place"
     cl = DriverPlace
-    where = sql.SQL("WHERE date between {start_date} and {end_date}").format(
+    where = sql.SQL("WHERE date_place between {start_date} and {end_date}").format(
         start_date=sql.Literal(start_day.strftime("%Y-%m-%d")),
         end_date=sql.Literal(end_day.strftime("%Y-%m-%d")),
     )
