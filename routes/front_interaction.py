@@ -7,6 +7,7 @@ from psycopg2 import sql
 from typing import List, Optional
 import components.func as func
 from components.datafiles import DriverPlacesDF, RunsDF
+from components.func import post_multiple_objects, put_multiple_objects
 
 
 router = APIRouter()
@@ -176,12 +177,13 @@ async def post_driver_places_upload_xlsx(file: UploadFile):
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
     try:
-        places = await DriverPlacesDF(file).df
+        places = DriverPlacesDF(file, method='POST')
+        places.MAX_FILE_SIZE = 15 * 1024 # 15kB
+        places_items = await places.objects_list
+        result = await post_multiple_objects(places_items, "drivers_place_table")
     except HTTPException as e:
         return e
-    with sql_handler.CarsTable("drivers_place_table") as _obj:
-        result = _obj.insert_multiple_data(places)
-    return JSONResponse(status_code=200, content=result)
+    return result
 
 
 @router.put("/api/drivers_place")
@@ -225,15 +227,15 @@ async def put_driver_places_upload_xlsx(file: UploadFile):
 
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
+    conditions = ('id',)
     try:
         places = DriverPlacesDF(file, method='PUT')
         places.MAX_FILE_SIZE = 15 * 1024 # 15kB
-        places_df = await places.df
+        places_items = await places.objects_list
+        result = await put_multiple_objects(places_items, "drivers_place_table", conditions)
     except HTTPException as e:
         return e
-    with sql_handler.CarsTable("drivers_place_table") as _obj:
-        result = _obj.update_multiple_data(places_df, ["id"])
-    return JSONResponse(status_code=200, content=result)
+    return result
 
 
 @router.delete("/api/drivers_place")
@@ -363,12 +365,13 @@ async def runs_upload_xlsx(file: UploadFile):
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
     try:
-        runs = await RunsDF(file).df
+        runs = RunsDF(file, method='POST')
+        runs.MAX_FILE_SIZE = 15 * 1024 # 15kB
+        runs_items = await runs.objects_list
+        result = await post_multiple_objects(runs_items, "runs")
     except HTTPException as e:
         return e
-    with sql_handler.CarsTable("runs") as _obj:
-        result = _obj.insert_multiple_data(runs)
-    return JSONResponse(status_code=200, content=result)
+    return result
 
 @router.put('/api/runs/upload_xlsx')
 async def runs_upload_xlsx(file: UploadFile):
@@ -387,16 +390,16 @@ async def runs_upload_xlsx(file: UploadFile):
 
     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
     """
-    # Долг: ложно проходит проверку на необходимость обновления данных в БД из-за разницы в типах данных (datetime64[ns] и date)
+
+    conditions = ('id',)
     try:
-        places = RunsDF(file, method='PUT')
-        places.MAX_FILE_SIZE = 150 * 1024 # 150kB
-        places_df = await places.df
+        runs = RunsDF(file, method='PUT')
+        runs.MAX_FILE_SIZE = 150 * 1024 # 150kB
+        runs_items = await runs.objects_list
+        result = await put_multiple_objects(runs_items, "runs", conditions)
     except HTTPException as e:
         return e
-    with sql_handler.CarsTable("runs") as _obj:
-        result = _obj.update_multiple_data(places_df, ["id"])
-    return JSONResponse(status_code=200, content=result)
+    return result
 
 
 @router.delete("/api/runs")

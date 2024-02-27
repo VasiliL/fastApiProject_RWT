@@ -1,11 +1,11 @@
-from typing import List, TypeVar
+from typing import List
 from fastapi import APIRouter
 from models.mmk_oracle import Invoice, Certificate
 from database import sql_handler
 from datetime import date
 from psycopg2 import sql
+from components.func import post_multiple_objects, put_multiple_objects
 
-T = TypeVar("T", Invoice, Certificate)
 
 router = APIRouter()
 
@@ -30,44 +30,16 @@ async def get_certificate_empty() -> List[date]:
     return result
 
 
-async def post_object(data: List[T], table_name: str):
-    _obj = sql_handler.CarsTable(table_name)
-    result = []
-    with _obj:
-        for obj in data:
-            _dict = obj.dict().copy()
-            if "id" in _dict:
-                del _dict["id"]
-            _r = _obj.insert_data(_dict)
-            result.append(True if isinstance(_r, list) else _r)
-    return result
-
-
 @router.post("/api/mmk/invoice")
 async def post_invoice(data: List[Invoice]):
-    return await post_object(data, "mmk_oracle_invoices")
+    return await post_multiple_objects(data, "mmk_oracle_invoices")
 
 
 @router.post("/api/mmk/certificate")
 async def post_certificate(data: List[Certificate]):
-    return await post_object(data, "mmk_oracle_certificate")
+    return await post_multiple_objects(data, "mmk_oracle_certificate")
 
 
 @router.put("/api/mmk/certificate")
 async def put_certificate(data: List[Certificate]):
-    _obj = sql_handler.CarsTable("mmk_oracle_certificate")
-    columns = ("weight_dry", "weight_wet", "link", "date_cert")
-    condition_columns = ("certificate_name",)
-    result = []
-    with _obj:
-        for certificate in data:
-            columns_data = dict(
-                zip(columns, [certificate.weight_dry, certificate.weight_wet, certificate.link, certificate.date_cert]))
-            columns_data = dict({k: v for k, v in columns_data.items() if v is not None})
-            condition_data = dict(zip(condition_columns, [certificate.certificate_name,]))
-            try:
-                result.append(_obj.update_data(columns_data, condition_data))
-            except IndexError as e:
-                if str(e) == "list index out of range":
-                    result.append("No invoice for Certificate")
-    return result
+    return await put_multiple_objects(data, "mmk_oracle_certificate", ("certificate_name",))

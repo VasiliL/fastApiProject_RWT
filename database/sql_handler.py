@@ -1,6 +1,4 @@
 from typing import List
-
-import numpy as np
 import pandas as pd
 import psycopg2
 from psycopg2 import sql, extras, errors
@@ -189,15 +187,6 @@ class CarsTable(Table):
         )
         return self.dml_handler(insert)
 
-    def insert_multiple_data(self, df: pd.DataFrame):
-        result = []
-        for index, row in df.iterrows():
-            _result = self.insert_data(row.to_dict())
-            if isinstance(_result, list):
-                result += _result
-            else:
-                result.append(_result)
-        return result
 
     def update_data(self, columns_data, condition_data):
         select = (
@@ -231,18 +220,6 @@ class CarsTable(Table):
         )
         return self.dml_handler(update)
 
-    def update_multiple_data(self, df: pd.DataFrame, condition_data: List[str]):
-        result = []
-        for index, row in df.iterrows():
-            row = row.replace("nan", pd.NA).dropna()
-            condition_dict = row[condition_data].to_dict()
-            data_dict = row.drop(row[condition_data].index).to_dict()
-            _result = self.update_data(data_dict, condition_dict)
-            if isinstance(_result, list):
-                result += _result
-            else:
-                result.append(_result)
-        return result
 
     def delete_data(self, condition_data):
         delete = (
