@@ -192,7 +192,7 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
     Args (necessary all):
 
     - id (int): The ID of the record to be updated.
-    - date (date): The date on which the record will be created.
+    - date_place (date): The date on which the record will be created.
     - car_id (int): The Car ID receive from cars route.
     - driver_id (int): The Driver ID receive from drivers route.
 
@@ -201,9 +201,9 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
     - bool: True if successful, False if request does not change anything.
     - str: The error message.
     """
-    columns = ("_date", "driver", "car")
+    columns = ("date_place", "driver_id", "car_id")
     condition_columns = ("id",)
-    columns_data = dict(zip(columns, [data.date, data.driver_id, data.car_id]))
+    columns_data = dict(zip(columns, [data.date_place, data.driver_id, data.car_id]))
     condition_data = dict(zip(condition_columns, [data.id,]))
     with sql_handler.CarsTable("drivers_place_table") as _obj:
         result = _obj.update_data(columns_data, condition_data)
