@@ -1,8 +1,11 @@
+from typing import List, Optional
+
+import pydantic
 from fastapi import UploadFile, HTTPException
 from abc import ABC
 import pandas as pd
-import numpy as np
 import io
+from models.front_interaction import MyModel, DriverPlace, Run
 
 
 class FileXLSX(ABC):
@@ -10,7 +13,9 @@ class FileXLSX(ABC):
 
     def __init__(self):
         self.__df = None
+        self.__objects_list = None
         self.file = None
+        self.model: Optional[MyModel] = None
         self.cleaned_df = False
 
     @property
@@ -23,8 +28,29 @@ class FileXLSX(ABC):
     async def df(self, value: pd.DataFrame):
         self.__df = value
 
-    async def sanityze_df(self, df: pd.DataFrame):
+    @property
+    async def objects_list(self) -> List[MyModel]:
+        if self.__objects_list is None:
+            self.__objects_list = await self.create_models_from_dataframe(self.model, await self.df)
+        return self.__objects_list
+
+    @objects_list.setter
+    async def objects_list(self, value: List[MyModel]):
+        self.__df = value
+
+    async def sanityze_df(self, df: pd.DataFrame) -> pd.DataFrame:
         raise NotImplementedError
+
+    async def create_models_from_dataframe(self, model_class, df: pd.DataFrame = None) -> List[MyModel]:
+        df = await self.df if df is None else df
+        result = []
+        try:
+            for _, row in df.iterrows():
+                row = row.replace("nan", pd.NA).dropna()
+                result.append(model_class(**row.to_dict()))
+        except pydantic.ValidationError as e:
+            raise HTTPException(status_code=400, detail=f"Ошибка в данных: {e}")
+        return result
 
     @classmethod
     async def check_xlsx_file(cls, file) -> bool:
@@ -46,6 +72,7 @@ class DriverPlacesDF(FileXLSX, ABC):
     def __init__(self, file: UploadFile, method: str = 'POST'):
         super().__init__()
         self.file = file
+        self.model = DriverPlace
         self.method = method
 
     async def sanityze_df(self, df: pd.DataFrame):
@@ -78,6 +105,7 @@ class RunsDF(FileXLSX, ABC):
     def __init__(self, file: UploadFile, method: str = 'POST'):
         super().__init__()
         self.file = file
+        self.model = Run
         self.method = method
 
     async def sanityze_df(self, df: pd.DataFrame):
@@ -89,8 +117,6 @@ class RunsDF(FileXLSX, ABC):
                     df = df.astype({"date_departure": "datetime64[ns]", "car_id": "int64", "invoice_id": "int64",
                                     "weight": "float64"})
                     df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
-                    df = df.replace(np.nan, None)
-                    df['date_departure'] = df['date_departure'].dt.strftime('%Y-%m-%d')
                     df = df[["date_departure", "car_id", "invoice_id", "weight"]]
                 case 'PUT':
                     df = df.rename(columns={"ID": "id", "Дата отправления": "date_departure", "Машина": "car_id",

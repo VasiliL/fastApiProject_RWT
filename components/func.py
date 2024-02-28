@@ -1,5 +1,8 @@
+from typing import List, Tuple
+from pydantic import BaseModel
 from psycopg2 import sql
 from database import sql_handler
+from fastapi.responses import JSONResponse
 
 
 async def get_query(view, cl, where=None):
@@ -34,3 +37,26 @@ async def get_view_data(view, cl, where=None):
     with _obj:
         select_clause = await get_query(view, cl, where)
         return [cl(**dict(row)) for row in _obj.dql_handler(select_clause)[0]]
+
+
+async def post_multiple_objects(data: List[BaseModel], table_name: str):
+    result = []
+    with sql_handler.CarsTable(table_name) as _obj:
+        for item in data:
+            _dict = item.dict(exclude_none=True).copy()
+            if "id" in _dict:
+                del _dict["id"]
+            _result = _obj.insert_data(_dict)
+            result.append(True if isinstance(_result, list) else _result)
+    return JSONResponse(status_code=200, content=result)
+
+
+async def put_multiple_objects(data: List[BaseModel], table_name: str, conditions: Tuple[str]):
+    result = []
+    with sql_handler.CarsTable(table_name) as _obj:
+        for item in data:
+            data_dict = {k: v for k, v in item.dict(exclude_none=True).items() if k not in conditions}
+            condition_dict = {k: v for k, v in item.dict(exclude_none=True).items() if k in conditions}
+            _result = _obj.update_data(data_dict, condition_dict)
+            result.append(True if isinstance(_result, list) else _result)
+    return JSONResponse(status_code=200, content=result)
