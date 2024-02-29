@@ -65,11 +65,40 @@ class Run(MyModel, BaseModel):
     invoice_document: Optional[str] = None
     waybill: Optional[str] = None
     weight: Optional[Decimal] = Decimal(0)
-    date_arrival: Optional[date] = None
+    _date_arrival: Optional[date] = None
     reg_number: Optional[str] = None
-    reg_date: Optional[date] = None
+    _reg_date: Optional[date] = None
     acc_number: Optional[str] = None
-    acc_date: Optional[date] = None
+    _acc_date: Optional[date] = None
     client: Optional[str] = None
     route: Optional[str] = None
     cargo: Optional[str] = None
+
+    @property
+    def reg_date(self) -> datetime.date:
+        return self._reg_date
+
+    @reg_date.setter
+    def reg_date(self, value: str) -> None:
+        self._reg_date = datetime.strptime(value, "%Y-%m-%d").date()
+
+    @property
+    def acc_data(self) -> datetime.date:
+        return self._reg_date
+
+    @acc_data.setter
+    def acc_data(self, value: str) -> None:
+        self._reg_date = self.str_to_date(value)
+
+    @property
+    def date_arrival(self) -> datetime.date:
+        return self._reg_date
+
+    @date_arrival.setter
+    def date_arrival(self, value: str) -> None:
+        self._reg_date = self.str_to_date(value)
+
+    @staticmethod
+    def str_to_date(date_str: str) -> datetime.date:
+        if date_str:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
