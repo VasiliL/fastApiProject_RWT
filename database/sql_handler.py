@@ -1,5 +1,3 @@
-from typing import List
-import pandas as pd
 import psycopg2
 from psycopg2 import sql, extras, errors
 import json
@@ -187,7 +185,6 @@ class CarsTable(Table):
         )
         return self.dml_handler(insert)
 
-
     def update_data(self, columns_data, condition_data):
         select = (
             sql.SQL("select {columns} from {table_name}").format(
@@ -219,7 +216,6 @@ class CarsTable(Table):
             + sql.SQL(" returning id")
         )
         return self.dml_handler(update)
-
 
     def delete_data(self, condition_data):
         delete = (

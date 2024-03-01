@@ -301,7 +301,7 @@ async def post_runs(data: Run) -> str | int:
     - int: The ID of the inserted data
     - str: The error message
     """
-    columns = ("weight", "date_departure", "car", "invoice")
+    columns = ("weight", "date_departure", "car_id", "invoice_id")
     columns_data = dict(zip(columns, [data.weight, data.date_departure, data.car_id, data.invoice_id]))
     with sql_handler.CarsTable("runs") as _obj:
         result = _obj.insert_data(columns_data)
