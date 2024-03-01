@@ -165,7 +165,8 @@ def set_drivers_place(data: DriverPlace) -> str | int:
 @router.post('/api/drivers_place/upload_xlsx')
 async def post_driver_places_upload_xlsx(file: UploadFile):
     """
-    Загружает файл с расстановкой водителей на машины. В файле должны быть столбцы: Дата, Водитель, Машина.
+    Загружает файл с расстановкой водителей на машины. В файле должны быть столбцы: Дата, ИД Водителя, ИД Машины.
+    Дополнительные столбцы допускаются, но не обрабатываются.
     По данным в файле будут созданы новые записи.
 
     Args (necessary all):
@@ -190,6 +191,9 @@ async def post_driver_places_upload_xlsx(file: UploadFile):
 async def put_drivers_place(data: DriverPlace) -> str | bool:
     """
     Обновляет запись в таблице расстановки водителей на машины.
+    В файле должны быть столбцы: ИД, Дата, ИД Водителя, ИД Машины.
+    Дополнительные столбцы допускаются, но не обрабатываются.
+    По данным в файле будут внесены изменения в текущие записи.
 
     Args (necessary all):
 

@@ -76,17 +76,19 @@ class DriverPlacesDF(FileXLSX, ABC):
         self.method = method
 
     async def sanityze_df(self, df: pd.DataFrame):
+        message = "Должны быть столбцы: Дата, ИД Водителя, ИД Машины"
         try:
             match self.method:
                 case 'POST':
-                    df = df.rename(columns={"Дата": "date_place", "Водитель": "driver_id", "Машина": "car_id"})
+                    df = df.rename(columns={"Дата": "date_place", "ИД Водителя": "driver_id", "ИД Машины": "car_id"})
                     df = df.dropna(subset=["date_place", "driver_id", "car_id"], how="any")
                     df = df.astype({"date_place": "datetime64[ns]", "driver_id": "int64", "car_id": "int64"})
                     df['date_place'] = df['date_place'].dt.strftime('%Y-%m-%d')
                     df = df[["date_place", "driver_id", "car_id"]]
                 case 'PUT':
-                    df = df.rename(columns={"ID": "id", "Дата": "date_place", "Водитель": "driver_id",
-                                            "Машина": "car_id"})
+                    message += ", ИД"
+                    df = df.rename(columns={"ИД": "id", "Дата": "date_place", "ИД Водителя": "driver_id",
+                                            "ИД Машины": "car_id"})
                     df = df.dropna(subset=["id", "date_place", "driver_id", "car_id"], how="any")
                     df = df.astype({"id": "int64", "date_place": "datetime64[ns]", "driver_id": "int64",
                                     "car_id": "int64"})
@@ -95,7 +97,7 @@ class DriverPlacesDF(FileXLSX, ABC):
             self.cleaned_df = True
             return df
         except KeyError as e:
-            raise HTTPException(status_code=400, detail=f"Должны быть столбцы: Дата, Водитель, Машина: {e}")
+            raise HTTPException(status_code=400, detail=message)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Ошибка в данных (Дату указать в формате дд.мм.гггг, "
                                                         f"идентификаторы машины и водителя - целые числа): {e}")
@@ -112,15 +114,15 @@ class RunsDF(FileXLSX, ABC):
         try:
             match self.method:
                 case 'POST':
-                    df = df.rename(columns={"Дата отправления": "date_departure", "Машина": "car_id",
-                                            "Заявка": "invoice_id", "Вес": "weight"})
+                    df = df.rename(columns={"Дата отправления": "date_departure", "ИД Машины": "car_id",
+                                            "ИД Заявки": "invoice_id", "Вес": "weight"})
                     df = df.astype({"date_departure": "datetime64[ns]", "car_id": "int64", "invoice_id": "int64",
                                     "weight": "float64"})
                     df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
                     df = df[["date_departure", "car_id", "invoice_id", "weight"]]
                 case 'PUT':
-                    df = df.rename(columns={"ID": "id", "Дата отправления": "date_departure", "Машина": "car_id",
-                                            "Заявка": "invoice_id", "Вес": "weight", "ПЛ": "waybill",
+                    df = df.rename(columns={"ИД": "id", "Дата отправления": "date_departure", "ИД Машины": "car_id",
+                                            "ИД Заявки": "invoice_id", "Вес": "weight", "ПЛ": "waybill",
                                             "ТН": "invoice_document", "Дата прибытия": "date_arrival",
                                             "Номер реестра": "reg_number", "Дата реестра": "reg_date",
                                             "Номер УПД": "acc_number", "Дата УПД": "acc_date"})
