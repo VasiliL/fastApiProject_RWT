@@ -8,10 +8,16 @@ from decimal import Decimal
 class MyModel(BaseModel):
     @classmethod
     def generate_select_query(cls):
-        column_names = cls.__annotations__.keys()
+        column_names = [cls.drop_underline(key) for key in cls.__annotations__.keys()]
         return sql.SQL("SELECT {}").format(
             sql.SQL(",").join(map(sql.Identifier, column_names))
         )
+
+    @classmethod
+    def drop_underline(cls, string: str) -> str:
+        while string.startswith('_'):
+            string = string[1:]
+        return string
 
 
 class Car(MyModel, BaseModel):
