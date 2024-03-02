@@ -15,7 +15,7 @@ router = APIRouter()
 TABLES = {"persons": ("_reference300", "_reference155", "_reference89"),
     "cars": ("_reference262", "_reference211", "_reference259"),
     "invoices": ("_document350", "_document350_vt1855", "_document365_vt2454", "_reference124", "_reference207",
-                 "_reference207_vt7419", "_reference225", "_reference111", "_reference110")}
+                 "_reference207_vt7419", "_reference225", "_reference111", "_reference110", "_reference128")}
 STATIC_VIEWS = {"persons", "cars", "cargo", "routes", "counterparty", "invoices", "react_drivers", "react_cars",
                 "runs_view"}
 
