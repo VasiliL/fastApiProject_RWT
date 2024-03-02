@@ -44,8 +44,10 @@ class Table(ABC):
         result = []
         for query in queries:
             self.table_cur.execute(query)
-            result.append(self.table_cur.fetchall())
-        return result
+            _result = self.table_cur.fetchall()
+            if _result:
+                result.append(_result)
+        return result if result else None
 
     def dml_handler(self, *queries):
         result = []
@@ -79,7 +81,8 @@ class Table(ABC):
                 "SELECT column_name FROM information_schema.columns where table_name = {"
                 "table_name}"
             ).format(table_name=sql.Literal(self.table_name))
-            self.__columns = self.dql_handler(query)[0]
+            sql_response = self.dql_handler(query)
+            self.__columns = sql_response[0] if sql_response else None
         return self.__columns
 
     @property
@@ -90,7 +93,8 @@ class Table(ABC):
                 "AND a.attnum = ANY(i.indkey) WHERE  i.indrelid = {table_name}::regclass "
                 "and i.indisprimary is true"
             ).format(table_name=sql.Literal(self.table_name))
-            self.__primary_key = self.dql_handler(query)[0][0]
+            sql_response = self.dql_handler(query)
+            self.__primary_key = sql_response[0][0] if sql_response else None
         return self.__primary_key
 
     @property
@@ -99,7 +103,8 @@ class Table(ABC):
             query = sql.SQL("SELECT * FROM {table_name}").format(
                 table_name=sql.Identifier(self.table_name)
             )
-            self.__data = self.dql_handler(query)[0]
+            sql_response = self.dql_handler(query)
+            self.__data = sql_response[0] if sql_response else None
         return self.__data
 
     def __enter__(self):
@@ -128,101 +133,124 @@ class CarsTable(Table):
     def __init__(self, table_name):
         super().__init__(DataBase("cars"), table_name)
 
-    def sync(self):
+    def create_temp_table(self):
+        query = sql.SQL(
+            "CREATE TEMP TABLE {name} (like {table_name} excluding all including INDEXES) on commit drop; "
+            "alter table {name} drop IF EXISTS id;"
+        ).format(name=sql.Identifier('temp_' + self.table_name),
+                 table_name=sql.Identifier(self.table_name))
+        self.table_cur.execute(query)
+        return f'temp_{self.table_name}'
+
+    def fill_temp_table(self):
         db1c_table = Db1cTable(self.table_name)
+        temp_table = self.create_temp_table()
         with db1c_table:
-            _reference_pattern = re.compile(r"^_(reference|document)\d+$")
+            query = sql.SQL(
+                "insert into {table_name} values ({placeholders})"
+            ).format(
+                table_name=sql.Identifier(temp_table),
+                placeholders=sql.SQL(", ").join(sql.Placeholder() for _ in db1c_table.columns)
+            )
             for row in db1c_table.data:
-                if re.fullmatch(_reference_pattern, self.table_name):
-                    updates = [
-                        sql.SQL("{column_name} = excluded.{column_name}").format(
-                            column_name=sql.Identifier(i[0])
-                        )
-                        for i in db1c_table.columns
-                    ]
-                    conditions = sql.SQL("r._version < excluded._version")
-                    query = sql.SQL(
-                        "insert into {table_name} as r values ({placeholders}) on conflict ({p_key}) do update set {"
-                        "updates} where {conditions}"
-                    ).format(
-                        table_name=sql.Identifier(self.table_name),
-                        placeholders=sql.SQL(", ").join(
-                            sql.Placeholder() for _ in db1c_table.columns
-                        ),
-                        p_key=sql.SQL(", ").join(
-                            sql.Identifier(_) for _ in self.primary_key
-                        ),
-                        updates=sql.SQL(", ").join(updates),
-                        conditions=conditions,
-                    )
-                else:
-                    query = sql.SQL(
-                        "insert into {table_name} as r values ({placeholders}) on conflict do nothing"
-                    ).format(
-                        table_name=sql.Identifier(self.table_name),
-                        placeholders=sql.SQL(", ").join(
-                            sql.Placeholder() for _ in self.columns
-                        ),
-                    )
                 self.table_cur.execute(query, row)
+        return temp_table
+
+    def sync(self):
+        _reference_pattern = re.compile(r"^_(reference|document)\d+$")
+        temp_table = self.fill_temp_table()
+        columns = list(self.columns)
+        if ['id'] in columns:
+            columns.remove(['id'])
+            # the query for delete all records from the main table that are not in the temporary table
+            delete_query = sql.SQL("delete from {table_name} where {p_key} not in (select {p_key} from {temp_table})"
+                                   ).format(
+                table_name=sql.Identifier(self.table_name),
+                p_key=sql.Identifier(self.primary_key[0]),
+                temp_table=sql.Identifier(temp_table)
+            )
+            self.table_cur.execute(delete_query)
+        # the query for insert all records from the temporary table that are not in the main table
+            updates = [sql.SQL("{column_name} = excluded.{column_name}").format(column_name=sql.Identifier(i[0]))
+                       for i in columns
+                       ]
+            conditions = sql.SQL("r._version < excluded._version")
+            insert_query = sql.SQL(
+                "insert into {table_name} as r ({column_names}) select {column_names} from {temp_table} "
+                "on conflict ({p_key}) do "
+                "update set {updates} where {conditions}"
+            ).format(
+                table_name=sql.Identifier(self.table_name),
+                temp_table=sql.Identifier(temp_table),
+                p_key=sql.SQL(", ").join(sql.Identifier(_) for _ in self.primary_key),
+                updates=sql.SQL(", ").join(updates),
+                column_names=sql.SQL(", ").join([sql.Identifier(i[0]) for i in columns]),
+                conditions=conditions,
+            )
+        elif not bool(self.primary_key) and not re.fullmatch(_reference_pattern, self.table_name):
+            insert_query = sql.SQL(
+                "truncate {table_name};"
+                "insert into {table_name} as r ({column_names}) select {column_names} from {temp_table}"
+            ).format(
+                table_name=sql.Identifier(self.table_name),
+                temp_table=sql.Identifier(temp_table),
+                column_names=sql.SQL(", ").join([sql.Identifier(i[0]) for i in columns]),
+            )
+        else:
+            insert_query = sql.SQL('select 1;')
+        self.table_cur.execute(insert_query)
 
     def get_data(self, where=None):
         where_clause = where if where else sql.SQL("")
         query = sql.SQL("SELECT * FROM {view} {where}").format(
             view=sql.Identifier(self.table_name), where=where_clause
         )
-        return self.dql_handler(query)[0]
+        sql_response = self.dql_handler(query)
+        return sql_response[0] if sql_response else None
 
     def insert_data(self, columns_data):
         insert = (
-            sql.SQL("insert into {table_name} (").format(
-                table_name=sql.Identifier(self.table_name)
-            )
-            + sql.SQL(", ").join(sql.Identifier(col) for col in columns_data.keys())
-            + sql.SQL(") values (")
-            + sql.SQL(", ").join(sql.Literal(val) for val in columns_data.values())
-            + sql.SQL(") returning id")
+                sql.SQL("insert into {table_name} (").format(
+                    table_name=sql.Identifier(self.table_name)
+                )
+                + sql.SQL(", ").join(sql.Identifier(col) for col in columns_data.keys())
+                + sql.SQL(") values (")
+                + sql.SQL(", ").join(sql.Literal(val) for val in columns_data.values())
+                + sql.SQL(") returning id")
         )
         return self.dml_handler(insert)
 
     def update_data(self, columns_data, condition_data):
         select = (
-            sql.SQL("select {columns} from {table_name}").format(
-                columns=sql.SQL(", ").join(
-                    sql.Identifier(col) for col in columns_data.keys()
-                ),
-                table_name=sql.Identifier(self.table_name),
-            )
-            + self.create_where_statement(condition_data)
+                sql.SQL("select {columns} from {table_name}").format(
+                    columns=sql.SQL(", ").join(sql.Identifier(col) for col in columns_data.keys()),
+                    table_name=sql.Identifier(self.table_name),)
+                + self.create_where_statement(condition_data)
         )
         try:
-            result = self.dql_handler(select)[0][0]
+            sql_response = self.dql_handler(select)
+            result = sql_response[0][0]
             result = {k: result[k] for k in columns_data.keys()}
             if result == columns_data:
                 return False
         except IndexError:
             return str("The record with the ID does not exist or ID is not defined.")
         update = (
-            sql.SQL("update {table_name} set ").format(
-                table_name=sql.Identifier(self.table_name)
-            )
-            + sql.SQL(", ").join(
-                sql.SQL("{column_name}={value}").format(
-                    column_name=sql.Identifier(k), value=sql.Literal(v)
-                )
-                for k, v in columns_data.items()
-            )
-            + self.create_where_statement(condition_data)
-            + sql.SQL(" returning id")
+                sql.SQL("update {table_name} set ").format(table_name=sql.Identifier(self.table_name))
+                + sql.SQL(", ").join(sql.SQL("{column_name}={value}").format(column_name=sql.Identifier(k),
+                                                                             value=sql.Literal(v))
+                                     for k, v in columns_data.items())
+                + self.create_where_statement(condition_data)
+                + sql.SQL(" returning id")
         )
         return self.dml_handler(update)
 
     def delete_data(self, condition_data):
         delete = (
-            sql.SQL("delete from {table_name}").format(
-                table_name=sql.Identifier(self.table_name)
-            )
-            + self.create_where_statement(condition_data)
-            + sql.SQL(" returning id")
+                sql.SQL("delete from {table_name}").format(
+                    table_name=sql.Identifier(self.table_name)
+                )
+                + self.create_where_statement(condition_data)
+                + sql.SQL(" returning id")
         )
         return self.dml_handler(delete)
