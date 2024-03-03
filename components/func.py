@@ -36,7 +36,9 @@ async def get_view_data(view, cl, where=None):
     _obj = sql_handler.CarsTable(view)
     with _obj:
         select_clause = await get_query(view, cl, where)
-        return [cl(**dict(row)) for row in _obj.dql_handler(select_clause)[0]]
+        result = _obj.dql_handler(select_clause)
+        if result:
+            return [cl(**dict(row)) for row in result[0]]
 
 
 async def post_multiple_objects(data: List[BaseModel], table_name: str):

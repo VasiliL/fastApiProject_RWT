@@ -24,22 +24,21 @@ class Car(MyModel, BaseModel):
     id: int
     description: str
     plate_number: str
-    vin: str
-    year: float
-    engine_hp: float
-    weight_capacity: float
-    volume: float
-    weight_own: float
+    owner: Optional[str]
+    vin: Optional[str]
+    year: Optional[float]
+    engine_hp: Optional[float]
+    weight_capacity: Optional[float]
+    volume: Optional[float]
+    weight_own: Optional[float]
     car_type: str
 
 
 class Person(MyModel, BaseModel):
     id: int
     fio: str
-    code: str
+    company: str
     position: str
-    inn: str
-    snils: str
 
 
 class Invoice(MyModel, BaseModel):
@@ -89,11 +88,11 @@ class Run(MyModel, BaseModel):
         self._reg_date = datetime.strptime(value, "%Y-%m-%d").date()
 
     @property
-    def acc_data(self) -> datetime.date:
+    def acc_date(self) -> datetime.date:
         return self._reg_date
 
-    @acc_data.setter
-    def acc_data(self, value: str) -> None:
+    @acc_date.setter
+    def acc_date(self, value: str) -> None:
         self._reg_date = self.str_to_date(value)
 
     @property

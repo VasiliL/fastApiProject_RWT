@@ -9,13 +9,12 @@ import components.func as func
 from components.datafiles import DriverPlacesDF, RunsDF
 from components.func import post_multiple_objects, put_multiple_objects
 
-
 router = APIRouter()
 
 TABLES = {"persons": ("_reference300", "_reference155", "_reference89", "_inforg13301"),
-    "cars": ("_reference262", "_reference211", "_reference259"),
-    "invoices": ("_document350", "_document350_vt1855", "_document365_vt2454", "_reference124", "_reference207",
-                 "_reference207_vt7419", "_reference225", "_reference111", "_reference110", "_reference128")}
+          "cars": ("_reference262", "_reference211", "_reference259"),
+          "invoices": ("_document350", "_document350_vt1855", "_document365_vt2454", "_reference124", "_reference207",
+                       "_reference207_vt7419", "_reference225", "_reference111", "_reference110", "_reference128")}
 STATIC_VIEWS = {"persons", "cars", "cargo", "routes", "counterparty", "invoices", "react_drivers", "react_cars",
                 "runs_view"}
 
@@ -88,7 +87,7 @@ async def get_drivers():
     return await func.get_view_data(view, cl, where)
 
 
-@router.get("/api/invoices", response_model=List[Invoice])
+@router.get("/api/invoices", response_model=Optional[List[Invoice]])
 async def get_invoices(day: Optional[date] = None):
     """
     Возвращает список Заявок на перевозку, актуальных на дату запроса.
@@ -116,7 +115,7 @@ async def get_invoices(day: Optional[date] = None):
     return await func.get_view_data(view, cl, where)
 
 
-@router.get("/api/drivers_place", response_model=List[DriverPlace])
+@router.get("/api/drivers_place", response_model=Optional[List[DriverPlace]])
 async def get_drivers_place(start_day: date, end_day: date):
     """
     Возвращает расстановку водителей на машины для всех дат, указанных в запросе.
@@ -179,7 +178,7 @@ async def post_driver_places_upload_xlsx(file: UploadFile):
     """
     try:
         places = DriverPlacesDF(file, method='POST')
-        places.MAX_FILE_SIZE = 15 * 1024 # 15kB
+        places.MAX_FILE_SIZE = 15 * 1024  # 15kB
         places_items = await places.objects_list
         result = await post_multiple_objects(places_items, "drivers_place_table")
     except HTTPException as e:
@@ -210,7 +209,7 @@ async def put_drivers_place(data: DriverPlace) -> str | bool:
     columns = ("date_place", "driver_id", "car_id")
     condition_columns = ("id",)
     columns_data = dict(zip(columns, [data.date_place, data.driver_id, data.car_id]))
-    condition_data = dict(zip(condition_columns, [data.id,]))
+    condition_data = dict(zip(condition_columns, [data.id, ]))
     with sql_handler.CarsTable("drivers_place_table") as _obj:
         result = _obj.update_data(columns_data, condition_data)
     return True if isinstance(result, list) else result
@@ -234,7 +233,7 @@ async def put_driver_places_upload_xlsx(file: UploadFile):
     conditions = ('id',)
     try:
         places = DriverPlacesDF(file, method='PUT')
-        places.MAX_FILE_SIZE = 15 * 1024 # 15kB
+        places.MAX_FILE_SIZE = 15 * 1024  # 15kB
         places_items = await places.objects_list
         result = await put_multiple_objects(places_items, "drivers_place_table", conditions)
     except HTTPException as e:
@@ -256,13 +255,13 @@ async def delete_drivers_place(data: int) -> str | bool:
     - str: The error message.
     """
     condition_columns = ("id",)
-    condition_data = dict(zip(condition_columns, [data,]))
+    condition_data = dict(zip(condition_columns, [data, ]))
     with sql_handler.CarsTable("drivers_place_table") as _obj:
         result = _obj.delete_data(condition_data)
     return result if isinstance(result, str) else bool(result[0]["rowcount"])
 
 
-@router.get("/api/runs", response_model=List[Run])
+@router.get("/api/runs", response_model=Optional[List[Run]])
 async def get_runs(start_day: date, end_day: date):
     """
     Возвращает список рейсов автомобилей для всех дат, указанных в запросе.
@@ -345,9 +344,9 @@ async def put_runs(data: Run):
                "date_arrival", "reg_number", "reg_date", "acc_number", "acc_date")
     condition_columns = ("id",)
     columns_data = dict(zip(columns, [data.date_departure, data.car_id, data.invoice_id, data.driver_id, data.weight,
-                                        data.waybill, data.invoice_document, data.date_arrival, data.reg_number,
-                                        data.reg_date, data.acc_number, data.acc_date]))
-    condition_data = dict(zip(condition_columns, [data.id,]))
+                                      data.waybill, data.invoice_document, data.date_arrival, data.reg_number,
+                                      data.reg_date, data.acc_number, data.acc_date]))
+    condition_data = dict(zip(condition_columns, [data.id, ]))
     with sql_handler.CarsTable("runs") as _obj:
         result = _obj.update_data(columns_data, condition_data)
     return True if isinstance(result, list) else result
@@ -370,12 +369,13 @@ async def runs_upload_xlsx(file: UploadFile):
     """
     try:
         runs = RunsDF(file, method='POST')
-        runs.MAX_FILE_SIZE = 15 * 1024 # 15kB
+        runs.MAX_FILE_SIZE = 15 * 1024  # 15kB
         runs_items = await runs.objects_list
         result = await post_multiple_objects(runs_items, "runs")
     except HTTPException as e:
         return e
     return result
+
 
 @router.put('/api/runs/upload_xlsx')
 async def runs_upload_xlsx(file: UploadFile):
@@ -398,7 +398,7 @@ async def runs_upload_xlsx(file: UploadFile):
     conditions = ('id',)
     try:
         runs = RunsDF(file, method='PUT')
-        runs.MAX_FILE_SIZE = 150 * 1024 # 150kB
+        runs.MAX_FILE_SIZE = 150 * 1024  # 150kB
         runs_items = await runs.objects_list
         result = await put_multiple_objects(runs_items, "runs", conditions)
     except HTTPException as e:
