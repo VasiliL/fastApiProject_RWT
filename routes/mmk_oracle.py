@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from models.mmk_oracle import Invoice, Certificate
 from database import sql_handler
 from datetime import date
@@ -42,4 +43,8 @@ async def post_certificate(data: List[Certificate]):
 
 @router.put("/api/mmk/certificate")
 async def put_certificate(data: List[Certificate]):
-    return await put_multiple_objects(data, "mmk_oracle_certificate", ("certificate_name",))
+    try:
+        return await put_multiple_objects(data, "mmk_oracle_certificate", ("certificate_name",))
+    except TypeError as e:
+        if "'NoneType' object is not" in str(e):
+            return JSONResponse(status_code=200, content='No data to update.')
