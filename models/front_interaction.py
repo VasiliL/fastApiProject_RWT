@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime, date
 from psycopg2 import sql
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 
 
@@ -63,7 +63,7 @@ class DriverPlace(MyModel, BaseModel):
 
 class Run(MyModel, BaseModel):
     id: Optional[int] = None
-    car_id: int
+    car_id: List[int] | int
     driver_id: Optional[int] = None
     invoice_id: int
     date_departure: date

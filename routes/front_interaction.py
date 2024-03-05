@@ -281,18 +281,19 @@ async def get_runs(start_day: date, end_day: date):
         start_date=sql.Literal(start_day.strftime("%Y-%m-%d")),
         end_date=sql.Literal(end_day.strftime("%Y-%m-%d")),
     )
+    result = await func.get_view_data(view, cl, where)
     return await func.get_view_data(view, cl, where)
 
 
 @router.post("/api/runs")
-async def post_runs(data: Run) -> str | int:
+async def post_runs(data: Run) -> str | int | List[str | int]:
     """
-    Создает запись в таблице рейсов.
+    Создает запись или записи в таблице рейсов.
 
     Args (necessary all):
 
     - date (date): The date on which the record will be created.
-    - car_id (int): The Car ID receive from cars route.
+    - car_id (int | List[int]): The Car ID or many of them, receive from cars route.
     - invoice_id (int): The Invoice ID receive from invoices route.
 
     Args (optional any):
@@ -301,14 +302,24 @@ async def post_runs(data: Run) -> str | int:
 
     Returns (any):
 
-    - int: The ID of the inserted data
+    - int | List[int]: The ID of the inserted data of one record or many of them.
     - str: The error message
     """
     columns = ("weight", "date_departure", "car_id", "invoice_id")
     columns_data = dict(zip(columns, [data.weight, data.date_departure, data.car_id, data.invoice_id]))
     with sql_handler.CarsTable("runs") as _obj:
-        result = _obj.insert_data(columns_data)
-    return result if isinstance(result, str) else result[0]["lastrowid"][0]
+        if isinstance(data.car_id, list):
+            result = []
+            for car_id in data.car_id:
+                columns_data["car_id"] = car_id
+                _result = _obj.insert_data(columns_data)
+                result.append(_result if isinstance(_result, str) else _result[0]["lastrowid"][0])
+            return result
+        else:
+            result = _obj.insert_data(columns_data)
+            return result if isinstance(result, str) else result[0]["lastrowid"][0]
+
+
 
 
 @router.put("/api/runs")
