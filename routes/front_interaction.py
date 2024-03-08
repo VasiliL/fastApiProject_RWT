@@ -282,7 +282,7 @@ async def get_runs(start_day: date, end_day: date):
         end_date=sql.Literal(end_day.strftime("%Y-%m-%d")),
     )
     result = await func.get_view_data(view, cl, where)
-    return await func.get_view_data(view, cl, where)
+    return result
 
 
 @router.post("/api/runs")
@@ -318,8 +318,6 @@ async def post_runs(data: Run) -> str | int | List[str | int]:
         else:
             result = _obj.insert_data(columns_data)
             return result if isinstance(result, str) else result[0]["lastrowid"][0]
-
-
 
 
 @router.put("/api/runs")
