@@ -83,7 +83,7 @@ async def get_drivers():
     """
     view = "persons"
     cl = Person
-    where = sql.SQL("where position = {}").format(sql.Literal("Водитель-экспедитор"))
+    where = sql.SQL("where position = {} or position is null").format(sql.Literal("Водитель-экспедитор"))
     return await func.get_view_data(view, cl, where)
 
 
