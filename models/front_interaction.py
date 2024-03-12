@@ -31,8 +31,8 @@ class Car(MyModel, BaseModel):
 class Person(MyModel, BaseModel):
     id: int
     fio: str
-    company: str
-    position: str
+    company: Optional[str]
+    position: Optional[str]
 
 
 class Invoice(MyModel, BaseModel):
