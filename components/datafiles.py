@@ -115,25 +115,24 @@ class RunsDF(FileXLSX, ABC):
             match self.method:
                 case 'POST':
                     df = df.rename(columns={"Дата отправления": "date_departure", "ИД Машины": "car_id",
-                                            "ИД Заявки": "invoice_id", "Вес": "weight"})
+                                            "ИД Заявки": "invoice_id", "Вес_погрузка": "weight"})
                     df = df.astype({"date_departure": "datetime64[ns]", "car_id": "int64", "invoice_id": "int64",
                                     "weight": "float64"})
                     df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
                     df = df[["date_departure", "car_id", "invoice_id", "weight"]]
                 case 'PUT':
                     df = df.rename(columns={"ИД": "id", "Дата отправления": "date_departure", "ИД Машины": "car_id",
-                                            "ИД Заявки": "invoice_id", "Вес": "weight", "ПЛ": "waybill",
-                                            "ТН": "invoice_document", "Дата прибытия": "date_arrival",
-                                            "Номер реестра": "reg_number", "Дата реестра": "reg_date",
-                                            "Номер УПД": "acc_number", "Дата УПД": "acc_date"})
+                                            "ИД Заявки": "invoice_id", "Вес_погрузка": "weight",
+                                            "Дата прибытия": "date_arrival", "Вес_выгрузка": "weight_arrival"})
                     df = df.astype({"id": "int64", "date_departure": "datetime64[ns]", "car_id": "int64",
-                                    "invoice_id": "int64", "weight": "float64", "waybill": "str",
-                                    "invoice_document": "str", "date_arrival": "datetime64[ns]", "reg_number": "str",
-                                    "reg_date": "datetime64[ns]", "acc_number": "str", "acc_date": "datetime64[ns]"})
+                                    "invoice_id": "int64", "weight": "float64", "date_arrival": "datetime64[ns]",
+                                    "weight_arrival": "float64"})
                     df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
                     df['date_departure'] = df['date_departure'].dt.strftime('%Y-%m-%d')
-                    df = df[["id", "date_departure", "car_id", "invoice_id", "weight", "waybill", "invoice_document",
-                             "date_arrival", "reg_number", "reg_date", "acc_number", "acc_date"]]
+                    df['date_arrival'] = df['date_arrival'].dt.strftime('%Y-%m-%d') if not df['date_arrival'].empty \
+                        else pd.NA
+                    df = df[["id", "date_departure", "car_id", "invoice_id", "weight", "date_arrival",
+                             "weight_arrival"]]
             self.cleaned_df = True
             return df
         except KeyError as e:
