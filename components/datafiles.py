@@ -123,16 +123,17 @@ class RunsDF(FileXLSX, ABC):
                 case 'PUT':
                     df = df.rename(columns={"ИД": "id", "Дата отправления": "date_departure", "ИД Машины": "car_id",
                                             "ИД Заявки": "invoice_id", "Вес_погрузка": "weight",
-                                            "Дата прибытия": "date_arrival", "Вес_выгрузка": "weight_arrival"})
+                                            "Дата прибытия": "date_arrival", "Вес_выгрузка": "weight_arrival",
+                                            "ИД Водителя": "driver_id"})
                     df = df.astype({"id": "int64", "date_departure": "datetime64[ns]", "car_id": "int64",
                                     "invoice_id": "int64", "weight": "float64", "date_arrival": "datetime64[ns]",
-                                    "weight_arrival": "float64"})
+                                    "weight_arrival": "float64", "driver_id": "int64"})
                     df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
                     df['date_departure'] = df['date_departure'].dt.strftime('%Y-%m-%d')
                     df['date_arrival'] = df['date_arrival'].dt.strftime('%Y-%m-%d') if not df['date_arrival'].empty \
                         else pd.NA
                     df = df[["id", "date_departure", "car_id", "invoice_id", "weight", "date_arrival",
-                             "weight_arrival"]]
+                             "weight_arrival", "driver_id"]]
             self.cleaned_df = True
             return df
         except KeyError as e:
