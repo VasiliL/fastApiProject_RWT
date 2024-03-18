@@ -155,7 +155,9 @@ class WaybillDF(FileXLSX, ABC):
 
     async def sanityze_df(self, df: pd.DataFrame):
         try:
-            df = df[["ИД Рейса", "ПЛ", "ТН"]].melt(id_vars=['ИД Рейса']).dropna(subset=['value'])
+            df = df.astype({"ТН": "object", "ПЛ": "object"})
+            df = df[["ИД Рейса", "ПЛ", "ТН"]].melt(id_vars=['ИД Рейса'])
+            df = df.dropna(subset=['value'])
             df = df.rename(columns={"ИД Рейса": "run_id", "value": "name", "variable": "doc_type"})
 
             # Выставляем типы документов ПЛ и ТН согласно таблице document_type в SQL
