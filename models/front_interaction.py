@@ -64,6 +64,7 @@ class Run(MyModel, BaseModel):
     invoice_document: Optional[str] = None
     waybill: Optional[str] = None
     weight: Optional[Decimal] = Decimal(0)
+    weight_arrival: Optional[Decimal] = Decimal(0)
     date_arrival: Optional[date] = None
     reg_number: Optional[str] = None
     reg_date: Optional[date] = None
