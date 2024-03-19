@@ -152,8 +152,9 @@ class CarsTable(Table):
                 table_name=sql.Identifier(temp_table),
                 placeholders=sql.SQL(", ").join(sql.Placeholder() for _ in db1c_table.columns)
             )
-            for row in db1c_table.data:
-                self.table_cur.execute(query, row)
+            if db1c_table.data:
+                for row in db1c_table.data:
+                    self.table_cur.execute(query, row)
         return temp_table
 
     def sync(self):

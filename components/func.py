@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from psycopg2 import sql
 from database import sql_handler
 from fastapi.responses import JSONResponse
+from fastapi import HTTPException
 
 
 async def get_query(view, cl, where=None):
@@ -57,8 +58,11 @@ async def put_multiple_objects(data: List[BaseModel], table_name: str, condition
     result = []
     with sql_handler.CarsTable(table_name) as _obj:
         for item in data:
-            data_dict = {k: v for k, v in item.dict(exclude_none=True).items() if k not in conditions}
-            condition_dict = {k: v for k, v in item.dict(exclude_none=True).items() if k in conditions}
-            _result = _obj.update_data(data_dict, condition_dict)
-            result.append(True if isinstance(_result, list) else _result)
+            try:
+                data_dict = {k: v for k, v in item.dict(exclude_none=True).items() if k not in conditions}
+                condition_dict = {k: v for k, v in item.dict(exclude_none=True).items() if k in conditions}
+                _result = _obj.update_data(data_dict, condition_dict)
+                result.append(True if isinstance(_result, list) else _result)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Ошибка в данных {condition_dict}: {e}")
     return JSONResponse(status_code=200, content=result)
