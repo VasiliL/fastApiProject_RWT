@@ -6,7 +6,7 @@ from abc import ABC
 import pandas as pd
 import io
 
-from models.documents import Waybill, Document
+from models.documents import Document
 from models.front_interaction import MyModel, DriverPlace, Run, RunUpdaterClientWeight, RunUpdaterWeight
 
 
@@ -14,6 +14,7 @@ class FileXLSX(ABC):
     MAX_FILE_SIZE: int = 1 * 1024 * 1024  # 1 MB
 
     def __init__(self):
+        self.raw_df = None
         self.__df = None
         self.__objects_list = None
         self.file = None
@@ -23,12 +24,17 @@ class FileXLSX(ABC):
     @property
     async def df(self) -> pd.DataFrame:
         if self.__df is None:
-            self.__df = await self.sanityze_df(await self.get_df(self.file))
+            if self.raw_df is None:
+                self.raw_df = await self.get_df(self.file)
+            self.__df = await self.sanityze_df(self.raw_df)
         return self.__df
 
-    @df.setter
-    async def df(self, value: pd.DataFrame):
-        self.__df = value
+    # async def set_df(self, value: pd.DataFrame):
+    #     if not self.cleaned_df:
+    #         self.raw_df = value
+    #         self.__df = await self.sanityze_df(value)
+    #     else:
+    #         self.__df = value
 
     @property
     async def objects_list(self) -> List[MyModel]:
@@ -36,9 +42,9 @@ class FileXLSX(ABC):
             self.__objects_list = await self.create_models_from_dataframe(self.model, await self.df)
         return self.__objects_list
 
-    @objects_list.setter
-    async def objects_list(self, value: List[MyModel]):
-        self.__df = value
+    # @objects_list.setter
+    # async def objects_list(self, value: List[MyModel]):
+    #     self.__df = value
 
     async def sanityze_df(self, df: pd.DataFrame) -> pd.DataFrame:
         raise NotImplementedError
@@ -98,7 +104,7 @@ class DriverPlacesDF(FileXLSX, ABC):
                     df = df[["id", "date_place", "driver_id", "car_id"]]
             self.cleaned_df = True
             return df
-        except KeyError as e:
+        except KeyError:
             raise HTTPException(status_code=400, detail=message)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Ошибка в данных (Дату указать в формате дд.мм.гггг, "
@@ -151,12 +157,12 @@ class RunsDF(FileXLSX, ABC):
 
 
 class RunsDFClientWeight(FileXLSX, ABC):
-    def __init__(self, file: UploadFile):
+    def __init__(self, df: pd.DataFrame):
         super().__init__()
-        self.file = file
+        self.raw_df = df
         self.model = RunUpdaterClientWeight
 
-    def sanityze_df(self, df: pd.DataFrame):
+    async def sanityze_df(self, df: pd.DataFrame):
         try:
             df = df.rename(columns={"ИД Рейса": "id", "Вес_погрузка_клиент": "client_weight",
                                     "Вес_выгрузка_клиент": "client_weight_arrival"}).dropna(subset=["id"], how="any")
@@ -175,7 +181,7 @@ class RunsDFWeight(FileXLSX, ABC):
         self.file = file
         self.model = RunUpdaterWeight
 
-    def sanityze_df(self, df: pd.DataFrame):
+    async def sanityze_df(self, df: pd.DataFrame):
         try:
             df = df.rename(columns={"ИД Рейса": "id", "Вес_погрузка": "weight",
                                     "Вес_выгрузка": "weight_arrival"}).dropna(subset=["id"], how="any")

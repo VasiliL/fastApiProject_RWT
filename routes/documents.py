@@ -68,7 +68,7 @@ async def outcome_docs_upload_xlsx(file: UploadFile):
         result = await post_multiple_objects(documents_items, "runs_documents")
         try:
             conditions = ('id',)
-            runs = RunsDFClientWeight(file)
+            runs = RunsDFClientWeight(documents_runs.raw_df)
             runs_items = await runs.objects_list
             await put_multiple_objects(runs_items, "runs", conditions)
         except HTTPException as e:
