@@ -220,7 +220,8 @@ class DocumentsDF(FileXLSX, ABC):
     def set_types(cls, df: pd.DataFrame) -> pd.DataFrame:
         df_copy = df.copy()
         df_copy = df_copy.drop(['run_id'], axis=1)
-        df_copy = df_copy.astype(object)
+        df_copy = df_copy.astype(str)
+        df_copy = df_copy.map(lambda x: x.replace('.0', ''))
         df_copy['run_id'] = df['run_id'].astype('int64')
         return df_copy
 
