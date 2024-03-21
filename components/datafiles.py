@@ -176,9 +176,9 @@ class RunsDFClientWeight(FileXLSX, ABC):
 
 
 class RunsDFWeight(FileXLSX, ABC):
-    def __init__(self, file: UploadFile):
+    def __init__(self, df: pd.DataFrame):
         super().__init__()
-        self.file = file
+        self.raw_df = df
         self.model = RunUpdaterWeight
 
     async def sanityze_df(self, df: pd.DataFrame):
@@ -195,7 +195,7 @@ class RunsDFWeight(FileXLSX, ABC):
 
 
 class DocumentsDF(FileXLSX, ABC):
-    DOC_TYPES = {"ТН": 1, "ПЛ": 2, "Реестр Перевозчика": 6, "УПД Перевозчика": 9, "УПД Поставщика": 8,
+    DOC_TYPES = {"ТН": 2, "ПЛ": 1, "Реестр Перевозчика": 6, "УПД Перевозчика": 9, "УПД Поставщика": 8,
                  "Реестр Заказчику": 4, "УПД Заказчику": 7}
 
     def __init__(self, file: UploadFile):
@@ -220,7 +220,7 @@ class DocumentsDF(FileXLSX, ABC):
     def set_types(cls, df: pd.DataFrame) -> pd.DataFrame:
         df_copy = df.copy()
         df_copy = df_copy.drop(['run_id'], axis=1)
-        df_copy = df_copy.astype(str)
+        df_copy = df_copy.astype(object)
         df_copy['run_id'] = df['run_id'].astype('int64')
         return df_copy
 

@@ -34,7 +34,7 @@ async def income_docs_upload_xlsx(file: UploadFile):
         result = await post_multiple_objects(documents_items, "runs_documents")
         try:
             conditions = ('id',)
-            runs = RunsDFWeight(file)
+            runs = RunsDFWeight(documents_runs.raw_df)
             runs_items = await runs.objects_list
             await put_multiple_objects(runs_items, "runs", conditions)
         except HTTPException as e:
@@ -76,3 +76,12 @@ async def outcome_docs_upload_xlsx(file: UploadFile):
     except HTTPException as e:
         return e
     return result
+
+
+@router.get("/api/documents/get_trn")
+async def get_trn():
+    """
+    Возвращает сгенерированный документ ТН в формате pdf.
+    Open tn template from template_docs and fill it with data from db.
+    """
+    pass
