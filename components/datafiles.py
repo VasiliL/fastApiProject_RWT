@@ -6,7 +6,7 @@ from abc import ABC
 import pandas as pd
 import io
 
-from models.documents import Waybill
+from models.documents import Waybill, Document
 from models.front_interaction import MyModel, DriverPlace, Run
 
 
@@ -147,32 +147,64 @@ class RunsDF(FileXLSX, ABC):
                                                         f"вес - число с разделителем-точкой): {e}")
 
 
-class WaybillDF(FileXLSX, ABC):
+class DocumentsDF(FileXLSX, ABC):
+    DOC_TYPES = {"ТН": 1, "ПЛ": 2, "Реестр Перевозчика": 6, "УПД Перевозчика": 9}
+
     def __init__(self, file: UploadFile):
         super().__init__()
         self.file = file
-        self.model = Waybill
+        self.model = Document
 
+    @classmethod
+    def set_doc_types(cls, df: pd.DataFrame) -> pd.DataFrame:
+        for key, value in cls.DOC_TYPES.items():
+            df.loc[df['doc_type'] == key, 'doc_type'] = value
+        return df
+
+    @classmethod
+    def melt_df(cls, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.melt(id_vars=['run_id']).dropna(subset=['value'])
+        df = df.rename(columns={"run_id": "run_id", "value": "name", "variable": "doc_type"})
+        return cls.set_doc_types(df)
+
+    @classmethod
+    def set_types(cls, df: pd.DataFrame) -> pd.DataFrame:
+        df_copy = df.copy()
+        df_copy = df_copy.drop(['run_id'], axis=1)
+        df_copy = df_copy.astype(str)
+        df_copy['run_id'] = df['run_id'].astype('int64')
+        return df_copy
+
+
+class IncomeDocsDF(DocumentsDF, FileXLSX, ABC):
     async def sanityze_df(self, df: pd.DataFrame):
         try:
-            df = df.astype({"ТН": "object", "ПЛ": "object"})
-            df = df[["ИД Рейса", "ПЛ", "ТН"]].melt(id_vars=['ИД Рейса'])
-            df = df.dropna(subset=['value'])
-            df = df.rename(columns={"ИД Рейса": "run_id", "value": "name", "variable": "doc_type"})
-
-            # Выставляем типы документов ПЛ и ТН согласно таблице document_type в SQL
-            df.loc[df['doc_type'] == "ПЛ", 'doc_type'] = 1
-            df.loc[df['doc_type'] == "ТН", 'doc_type'] = 2
-
-            # Приведение типов
-            df = df.astype({"run_id": "int64", "name": "object", "doc_type": "int64"})
+            df = df.rename(columns={"ИД Рейса": "run_id"}).dropna(subset=["run_id"], how="any")
+            df = df[["run_id", "ПЛ", "ТН", "Реестр Перевозчика", "УПД Перевозчика"]]
+            df = self.melt_df(self.set_types(df))
             self.cleaned_df = True
             return df
         except KeyError as e:
             raise HTTPException(status_code=400,
-                                detail=f"Должны быть столбцы: ИД Рейса, ПЛ, ТН, Вес_погрузка, Вес_выгрузка, "
-                                       f"Дата отправления, Дата прибытия: {e}")
+                                detail=f"Должны быть столбцы: ИД Рейса, ПЛ, ТН, Реестр Перевозчика, "
+                                       f"УПД Перевозчика: {e}")
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"Ошибка в данных (Дату указать в формате дд.мм.гггг, "
-                                                        f"идентификаторы машины и заявки - целые числа, "
-                                                        f"вес - число с разделителем-точкой): {e}")
+            raise HTTPException(status_code=400, detail=f"Ошибка в данных (Идентификатор рейса - число, ПЛ, ТН, "
+                                                        f"Реестр Перевозчика, УПД Перевозчика - текст): {e}")
+
+
+class ClientDocsDF(DocumentsDF, FileXLSX, ABC):
+    async def sanityze_df(self, df: pd.DataFrame):
+        try:
+            df = df.rename(columns={"ИД Рейса": "run_id"}).dropna(subset=["run_id"], how="any")
+            df = df[["run_id", "УПД Поставщика", "Реестр Заказчику", "УПД Заказчику"]]
+            df = self.melt_df(self.set_types(df))
+            self.cleaned_df = True
+            return df
+        except KeyError as e:
+            raise HTTPException(status_code=400,
+                                detail=f"Должны быть столбцы: ИД Рейса, УПД Поставщика, Реестр Заказчику, "
+                                       f"УПД Заказчику: {e}")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Ошибка в данных (Идентификатор рейса - число, УПД Поставщика,"
+                                                        f" Реестр Заказчику, УПД Заказчику - текст): {e}")

@@ -8,10 +8,12 @@ class Document(MyModel, BaseModel):
     run_id: int
     doc_type: int
 
-
-class Waybill(Document):
     def __init__(self, name: str | int, run_id: int, doc_type: int):
         super().__init__(name=str(name), run_id=run_id, doc_type=doc_type)
+
+
+class Waybill(Document):
+    pass
 
 
 class TransportInvoice(Document):
