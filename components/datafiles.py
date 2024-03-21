@@ -164,8 +164,9 @@ class DocumentsDF(FileXLSX, ABC):
 
     @classmethod
     def melt_df(cls, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.melt(id_vars=['run_id']).dropna(subset=['value'])
+        df = df.melt(id_vars=['run_id']).dropna(subset=["value"], how="any")
         df = df.rename(columns={"run_id": "run_id", "value": "name", "variable": "doc_type"})
+        df = df[df['name'] != 'nan']
         return cls.set_doc_types(df)
 
     @classmethod
