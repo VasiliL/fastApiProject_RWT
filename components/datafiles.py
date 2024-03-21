@@ -7,7 +7,7 @@ import pandas as pd
 import io
 
 from models.documents import Waybill, Document
-from models.front_interaction import MyModel, DriverPlace, Run
+from models.front_interaction import MyModel, DriverPlace, Run, RunUpdaterClientWeight, RunUpdaterWeight
 
 
 class FileXLSX(ABC):
@@ -123,19 +123,22 @@ class RunsDF(FileXLSX, ABC):
                     df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
                     df = df[["date_departure", "car_id", "invoice_id", "weight"]]
                 case 'PUT':
-                    df = df.rename(columns={"ИД Рейса": "id", "Дата отправления": "date_departure", "ИД Машины": "car_id",
-                                            "ИД Заявки": "invoice_id", "Вес_погрузка": "weight",
+                    df = df.rename(columns={"ИД Рейса": "id", "Дата отправления": "date_departure",
+                                            "ИД Машины": "car_id", "ИД Заявки": "invoice_id", "Вес_погрузка": "weight",
                                             "Дата прибытия": "date_arrival", "Вес_выгрузка": "weight_arrival",
-                                            "ИД Водителя": "driver_id"}).dropna(subset=["id"], how="any")
+                                            "ИД Водителя": "driver_id", "Вес_погрузка_клиент": "client_weight",
+                                            "Вес_выгрузка_клиент": "client_weight_arrival"}).dropna(subset=["id"],
+                                                                                                    how="any")
                     df = df.astype({"id": "int64", "date_departure": "datetime64[ns]", "car_id": "int64",
                                     "invoice_id": "int64", "weight": "float64", "date_arrival": "datetime64[ns]",
-                                    "weight_arrival": "float64", "driver_id": "int64"})
+                                    "weight_arrival": "float64", "driver_id": "int64", "client_weight": "float64",
+                                    "client_weight_arrival": "float64"})
                     df = df.dropna(subset=["date_departure", "car_id", "invoice_id"], how="any")
                     df['date_departure'] = df['date_departure'].dt.strftime('%Y-%m-%d')
                     df['date_arrival'] = df['date_arrival'].dt.strftime('%Y-%m-%d') if not df['date_arrival'].empty \
                         else pd.NA
                     df = df[["id", "date_departure", "car_id", "invoice_id", "weight", "date_arrival",
-                             "weight_arrival", "driver_id"]]
+                             "weight_arrival", "driver_id", "client_weight", "client_weight_arrival"]]
             self.cleaned_df = True
             return df
         except KeyError as e:
@@ -145,6 +148,44 @@ class RunsDF(FileXLSX, ABC):
             raise HTTPException(status_code=400, detail=f"Ошибка в данных (Дату указать в формате дд.мм.гггг, "
                                                         f"идентификаторы машины и заявки - целые числа, "
                                                         f"вес - число с разделителем-точкой): {e}")
+
+
+class RunsDFClientWeight(FileXLSX, ABC):
+    def __init__(self, file: UploadFile):
+        super().__init__()
+        self.file = file
+        self.model = RunUpdaterClientWeight
+
+    def sanityze_df(self, df: pd.DataFrame):
+        try:
+            df = df.rename(columns={"ИД Рейса": "id", "Вес_погрузка_клиент": "client_weight",
+                                    "Вес_выгрузка_клиент": "client_weight_arrival"}).dropna(subset=["id"], how="any")
+            df = df.astype({"id": "int64", "client_weight": "float64", "client_weight_arrival": "float64"})
+            df = df[["id", "client_weight", "client_weight_arrival"]]
+            self.cleaned_df = True
+            return df
+        except KeyError as e:
+            raise HTTPException(status_code=400, detail=f"Должны быть столбцы: ИД Рейса, Вес_погрузка_клиент, "
+                                                        f"Вес_выгрузка_клиент: {e}")
+
+
+class RunsDFWeight(FileXLSX, ABC):
+    def __init__(self, file: UploadFile):
+        super().__init__()
+        self.file = file
+        self.model = RunUpdaterWeight
+
+    def sanityze_df(self, df: pd.DataFrame):
+        try:
+            df = df.rename(columns={"ИД Рейса": "id", "Вес_погрузка": "weight",
+                                    "Вес_выгрузка": "weight_arrival"}).dropna(subset=["id"], how="any")
+            df = df.astype({"id": "int64", "weight": "float64", "weight_arrival": "float64"})
+            df = df[["id", "weight", "weight_arrival"]]
+            self.cleaned_df = True
+            return df
+        except KeyError as e:
+            raise HTTPException(status_code=400, detail=f"Должны быть столбцы: ИД Рейса, Вес_погрузка, "
+                                                        f"Вес_выгрузка: {e}")
 
 
 class DocumentsDF(FileXLSX, ABC):

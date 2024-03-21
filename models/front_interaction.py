@@ -65,6 +65,8 @@ class Run(MyModel, BaseModel):
     waybill: Optional[str] = None
     weight: Optional[Decimal] = Decimal(0)
     weight_arrival: Optional[Decimal] = Decimal(0)
+    client_weight: Optional[Decimal] = Decimal(0)
+    client_weight_arrival: Optional[Decimal] = Decimal(0)
     date_arrival: Optional[date] = None
     reg_number: Optional[str] = None
     reg_date: Optional[date] = None
@@ -73,3 +75,15 @@ class Run(MyModel, BaseModel):
     client: Optional[str] = None
     route: Optional[str] = None
     cargo: Optional[str] = None
+
+
+class RunUpdaterClientWeight(MyModel, BaseModel):
+    id: int
+    client_weight: Optional[Decimal] = Decimal(0)
+    client_weight_arrival: Optional[Decimal] = Decimal(0)
+
+
+class RunUpdaterWeight(MyModel, BaseModel):
+    id: int
+    weight: Optional[Decimal] = Decimal(0)
+    weight_arrival: Optional[Decimal] = Decimal(0)

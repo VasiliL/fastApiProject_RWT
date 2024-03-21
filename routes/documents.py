@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, HTTPException
 
-from components.datafiles import IncomeDocsDF, ClientDocsDF
-from components.func import post_multiple_objects
+from components.datafiles import IncomeDocsDF, ClientDocsDF, RunsDFClientWeight, RunsDFWeight
+from components.func import post_multiple_objects, put_multiple_objects
 
 router = APIRouter()
 
@@ -32,7 +32,13 @@ async def income_docs_upload_xlsx(file: UploadFile):
         documents_runs.MAX_FILE_SIZE = 15 * 1024  # 15kB
         documents_items = await documents_runs.objects_list
         result = await post_multiple_objects(documents_items, "runs_documents")
-
+        try:
+            conditions = ('id',)
+            runs = RunsDFWeight(file)
+            runs_items = await runs.objects_list
+            await put_multiple_objects(runs_items, "runs", conditions)
+        except HTTPException as e:
+            return e
     except HTTPException as e:
         return e
     return result
@@ -60,7 +66,13 @@ async def outcome_docs_upload_xlsx(file: UploadFile):
         documents_runs.MAX_FILE_SIZE = 15 * 1024  # 15kB
         documents_items = await documents_runs.objects_list
         result = await post_multiple_objects(documents_items, "runs_documents")
-
+        try:
+            conditions = ('id',)
+            runs = RunsDFClientWeight(file)
+            runs_items = await runs.objects_list
+            await put_multiple_objects(runs_items, "runs", conditions)
+        except HTTPException as e:
+            return e
     except HTTPException as e:
         return e
     return result

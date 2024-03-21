@@ -362,58 +362,58 @@ async def put_runs(data: Run):
     return True if isinstance(result, list) else result
 
 
-@router.post('/api/runs/upload_xlsx')
-async def runs_upload_xlsx(file: UploadFile):
-    """
-    Загружает краткую версию файла с Рейсами.
-    В файле должны быть столбцы: Дата отправления, ИД Машины, ИД Заявки, Вес_погрузка (опционально).
-    По данным в файле будут созданы новые записи.
+# @router.post('/api/runs/upload_xlsx')
+# async def runs_upload_xlsx(file: UploadFile):
+#     """
+#     Загружает краткую версию файла с Рейсами.
+#     В файле должны быть столбцы: Дата отправления, ИД Машины, ИД Заявки, Вес_погрузка (опционально).
+#     По данным в файле будут созданы новые записи.
+#
+#     Args (necessary all):
+#
+#     - file (UploadFile): The file to be uploaded.
+#
+#     Returns (any):
+#
+#     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
+#     """
+#     try:
+#         runs = RunsDF(file, method='POST')
+#         runs.MAX_FILE_SIZE = 15 * 1024  # 15kB
+#         runs_items = await runs.objects_list
+#         result = await post_multiple_objects(runs_items, "runs")
+#     except HTTPException as e:
+#         return e
+#     return result
 
-    Args (necessary all):
 
-    - file (UploadFile): The file to be uploaded.
-
-    Returns (any):
-
-    - List[int|str]: The list of The ID's of the inserted data or strings of errors.
-    """
-    try:
-        runs = RunsDF(file, method='POST')
-        runs.MAX_FILE_SIZE = 15 * 1024  # 15kB
-        runs_items = await runs.objects_list
-        result = await post_multiple_objects(runs_items, "runs")
-    except HTTPException as e:
-        return e
-    return result
-
-
-@router.put('/api/runs/upload_xlsx')
-async def runs_upload_xlsx(file: UploadFile):
-    """
-    Загружает полную версию файла с Рейсами.
-    В файле должны быть столбцы: ИД, Дата отправления, ИД Машины, ИД Заявки, Вес_погрузка, Дата прибытия, Вес_выгрузка,
-    ИД Водителя.
-    По данным в файле будут изменены записи с соответствующим ID на данные из файла.
-    Максимальный размер файла для загрузки - 150 кБ
-
-    Args (necessary all):
-
-    - file (UploadFile): The file to be uploaded.
-
-    Returns (any):
-
-    - List[int|str]: The list of The ID's of the inserted data or strings of errors.
-    """
-
-    conditions = ('id',)
-    try:
-        runs = RunsDF(file, method='PUT')
-        runs.MAX_FILE_SIZE = 150 * 1024  # 150kB
-        runs_items = await runs.objects_list
-        result = await put_multiple_objects(runs_items, "runs", conditions)
-    except HTTPException as e:
-        return e
-    return result
+# @router.put('/api/runs/upload_xlsx')
+# async def runs_upload_xlsx(file: UploadFile):
+#     """
+#     Загружает полную версию файла с Рейсами.
+#     В файле должны быть столбцы: ИД, Дата отправления, ИД Машины, ИД Заявки, Вес_погрузка, Дата прибытия, Вес_выгрузка,
+#     ИД Водителя.
+#     По данным в файле будут изменены записи с соответствующим ID на данные из файла.
+#     Максимальный размер файла для загрузки - 150 кБ
+#
+#     Args (necessary all):
+#
+#     - file (UploadFile): The file to be uploaded.
+#
+#     Returns (any):
+#
+#     - List[int|str]: The list of The ID's of the inserted data or strings of errors.
+#     """
+#
+#     conditions = ('id',)
+#     try:
+#         runs = RunsDF(file, method='PUT')
+#         runs.MAX_FILE_SIZE = 150 * 1024  # 150kB
+#         runs_items = await runs.objects_list
+#         result = await put_multiple_objects(runs_items, "runs", conditions)
+#     except HTTPException as e:
+#         return e
+#     return result
 
 
 @router.delete("/api/runs")
