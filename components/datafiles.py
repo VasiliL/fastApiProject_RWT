@@ -148,7 +148,8 @@ class RunsDF(FileXLSX, ABC):
 
 
 class DocumentsDF(FileXLSX, ABC):
-    DOC_TYPES = {"ТН": 1, "ПЛ": 2, "Реестр Перевозчика": 6, "УПД Перевозчика": 9}
+    DOC_TYPES = {"ТН": 1, "ПЛ": 2, "Реестр Перевозчика": 6, "УПД Перевозчика": 9, "УПД Поставщика": 8,
+                 "Реестр Заказчику": 4, "УПД Заказчику": 7}
 
     def __init__(self, file: UploadFile):
         super().__init__()
