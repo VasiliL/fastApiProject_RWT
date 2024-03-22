@@ -90,7 +90,7 @@ async def get_trn(run_id: int, doc_name: str):
     """
     file_path = os.path.join("template_docs", "tn.pdf")
     tn = TN(run_id, doc_name)
-    await tn.get_data()
-    with open(file_path, "rb") as file:
-        content = file.read()
-    return Response(content, media_type="application/pdf")
+    if await tn.get_data():
+        tn.fill_pdf()
+        content = tn.get_pdf()
+        return Response(content, media_type="application/pdf")

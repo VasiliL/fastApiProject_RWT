@@ -17,7 +17,7 @@ class MyModel(BaseModel):
 class Car(MyModel, BaseModel):
     id: int
     description: str
-    plate_number: str
+    plate_number: Optional[str]
     owner: Optional[str]
     vin: Optional[str]
     year: Optional[float]
@@ -27,6 +27,7 @@ class Car(MyModel, BaseModel):
     weight_own: Optional[float]
     car_type: Optional[str]
     car_model: Optional[str]
+    trailer_description: Optional[str]
 
 
 class Person(MyModel, BaseModel):

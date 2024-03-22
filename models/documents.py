@@ -39,10 +39,13 @@ class TransportInvoice(Document):
     car_id: Optional[int] = None
     weight: Optional[Decimal] = None
     weight_arrival: Optional[Decimal] = None
+    date_departure: Optional[date] = None
 
     # car attributes
     car_model: Optional[str] = None
     car_type: Optional[str] = None
+    plate_number: Optional[str] = None
+    trailer_description: Optional[str] = None
 
     # driver attributes
     fio: Optional[str] = None
