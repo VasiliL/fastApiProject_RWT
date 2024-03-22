@@ -25,7 +25,8 @@ class Car(MyModel, BaseModel):
     weight_capacity: Optional[float]
     volume: Optional[float]
     weight_own: Optional[float]
-    car_type: str
+    car_type: Optional[str]
+    car_model: Optional[str]
 
 
 class Person(MyModel, BaseModel):
@@ -33,17 +34,23 @@ class Person(MyModel, BaseModel):
     fio: str
     company: Optional[str]
     position: Optional[str]
+    driver_license: Optional[str] = None
 
 
 class Invoice(MyModel, BaseModel):
     id: int
-    client: str
-    route: str
-    cargo: str
+    client: Optional[str] = None
+    route: Optional[str] = None
+    cargo: Optional[str] = None
     weight: Decimal
     price: Decimal
     departure_date: datetime
     arrival_date: datetime
+    shipper: Optional[str] = None
+    consignee: Optional[str] = None
+    arrival_point: Optional[str] = None
+    departure_point: Optional[str] = None
+    client_contract: Optional[str] = None
 
 
 class DriverPlace(MyModel, BaseModel):
@@ -59,8 +66,8 @@ class Run(MyModel, BaseModel):
     id: Optional[int] = None
     car_id: List[int] | int
     driver_id: Optional[int] = None
-    invoice_id: int
-    date_departure: date
+    invoice_id: Optional[int] = None
+    date_departure: Optional[date] = None
     invoice_document: Optional[str] = None
     waybill: Optional[str] = None
     weight: Optional[Decimal] = Decimal(0)

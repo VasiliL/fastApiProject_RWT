@@ -11,11 +11,12 @@ from components.func import post_multiple_objects, put_multiple_objects
 
 router = APIRouter()
 
-TABLES = {"persons": ("_reference300", "_reference155", "_reference89", "_inforg13301"),
+TABLES = {"persons": ("_reference300", "_reference155", "_reference89", "_inforg13301", "_inforg10632",
+                      "_reference228", "_reference179", "_reference75"),
           "cars": ("_reference262", "_reference211", "_reference259", "_inforg13254"),
           "invoices": ("_document350", "_document350_vt1855", "_document365_vt2454", "_reference124", "_reference207",
                        "_reference207_vt7419", "_reference225", "_reference111", "_reference110", "_reference128",
-                       "_document350_vt1893")}
+                       "_document350_vt1893", "_reference88")}
 STATIC_VIEWS = {"persons", "cars", "cargo", "routes", "counterparty", "invoices", "react_drivers", "react_cars",
                 "runs_view"}
 
@@ -64,11 +65,27 @@ async def get_cars():
     """
     view = "cars"
     cl = Car
-    where = sql.SQL(
-        """where car_type in ('Грузовые автомобили тягачи седельные', 'Тягачи седельные 6х4',
-     'Грузовые самосвалы 8х4')"""
-    )
-    return await func.get_view_data(view, cl, where)
+    return await func.get_view_data(view, cl)
+
+
+@router.get("/api/car_by_id", response_model=Optional[Car])
+async def get_car(car_id: int):
+    """
+    Возвращает машину по ИД.
+
+    Args: car_id
+
+    Returns:
+
+    - Car: A list of Car objects.
+    """
+    view = "cars"
+    cl = Car
+    car_id = car_id if isinstance(car_id, int) else None
+    if car_id:
+        where = sql.SQL(" WHERE id = {car_id}").format(car_id=sql.Literal(car_id))
+        result = await func.get_view_data(view, cl, where)
+        return result[0]
 
 
 @router.get("/api/drivers", response_model=List[Person])
@@ -86,6 +103,26 @@ async def get_drivers():
     cl = Person
     where = sql.SQL("where position = {} or position is null").format(sql.Literal('Водитель-экспедитор'))
     return await func.get_view_data(view, cl, where)
+
+
+@router.get("/api/driver_by_id", response_model=Optional[Person])
+async def get_driver(driver_id: int):
+    """
+    Возвращает водителя по ИД.
+
+    Args: driver_id
+
+    Returns:
+
+    - Person: The Person objects.
+    """
+    view = "persons"
+    cl = Person
+    driver_id = driver_id if isinstance(driver_id, int) else None
+    if driver_id:
+        where = sql.SQL(" WHERE id = {driver_id}").format(driver_id=sql.Literal(driver_id))
+        result = await func.get_view_data(view, cl, where)
+        return result[0]
 
 
 @router.get("/api/invoices", response_model=Optional[List[Invoice]])
@@ -114,6 +151,28 @@ async def get_invoices(day: Optional[date] = None):
         else None
     )
     return await func.get_view_data(view, cl, where)
+
+
+@router.get("/api/invoice_by_id", response_model=Optional[Invoice])
+async def get_invoice(invoice_id: int):
+    """
+    Возвращает Заявку на перевозку по ИД.
+
+    Args:
+
+    - invoice_id: The Invoice ID.
+
+    Returns:
+
+    - Invoice: The Invoice objects.
+    """
+    view = "invoices"
+    cl = Invoice
+    invoice_id = invoice_id if isinstance(invoice_id, int) else None
+    if invoice_id:
+        where = sql.SQL(" WHERE id = {invoice_id}").format(invoice_id=sql.Literal(invoice_id))
+        result = await func.get_view_data(view, cl, where)
+        return result[0]
 
 
 @router.get("/api/drivers_place", response_model=Optional[List[DriverPlace]])
@@ -284,6 +343,26 @@ async def get_runs(start_day: date, end_day: date):
     )
     result = await func.get_view_data(view, cl, where)
     return result
+
+
+@router.get("/api/run_by_id", response_model=Optional[Run])
+async def get_run(run_id: int):
+    """
+    Возвращает список рейс по его ИД.
+
+    Args (necessary all):
+
+    - run_id (int): The ID of the run.
+
+    Returns (any):
+
+    - Run: A list of Run objects.
+    """
+    view = "runs_view"
+    cl = Run
+    where = sql.SQL(" WHERE id = {run_id}").format(run_id=sql.Literal(run_id))
+    result = await func.get_view_data(view, cl, where)
+    return result[0]
 
 
 @router.post("/api/runs")

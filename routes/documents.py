@@ -1,7 +1,10 @@
-from fastapi import APIRouter, UploadFile, HTTPException
+import os.path
+
+from fastapi import APIRouter, UploadFile, HTTPException, Response
 
 from components.datafiles import IncomeDocsDF, ClientDocsDF, RunsDFClientWeight, RunsDFWeight
 from components.func import post_multiple_objects, put_multiple_objects
+from components.fill_template import TN
 
 router = APIRouter()
 
@@ -79,9 +82,15 @@ async def outcome_docs_upload_xlsx(file: UploadFile):
 
 
 @router.get("/api/documents/get_trn")
-async def get_trn():
+async def get_trn(run_id: int, doc_name: str):
     """
     Возвращает сгенерированный документ ТН в формате pdf.
     Open tn template from template_docs and fill it with data from db.
+    returns filled pdf file.
     """
-    pass
+    file_path = os.path.join("template_docs", "tn.pdf")
+    tn = TN(run_id, doc_name)
+    await tn.get_data()
+    with open(file_path, "rb") as file:
+        content = file.read()
+    return Response(content, media_type="application/pdf")

@@ -1,3 +1,7 @@
+from datetime import date
+from decimal import Decimal
+from typing import Optional
+
 from pydantic import BaseModel
 
 from models.front_interaction import MyModel
@@ -17,4 +21,33 @@ class Waybill(Document):
 
 
 class TransportInvoice(Document):
-    pass
+    # document attributes, see Document attributes too
+    doc_date: Optional[date] = None
+
+    # invoice attributes
+    shipper: Optional[str] = None
+    client: Optional[str] = None
+    consignee: Optional[str] = None
+    arrival_point: Optional[str] = None
+    cargo: Optional[str] = None
+    departure_point: Optional[str] = None
+    client_contract: Optional[str] = None
+
+    # run attributes
+    invoice_id: Optional[int] = None
+    driver_id: Optional[int] = None
+    car_id: Optional[int] = None
+    weight: Optional[Decimal] = None
+    weight_arrival: Optional[Decimal] = None
+
+    # car attributes
+    car_model: Optional[str] = None
+    car_type: Optional[str] = None
+
+    # driver attributes
+    fio: Optional[str] = None
+    driver_license: Optional[str] = None
+
+    # static attributes
+    carrier: Optional[str] = "РВ-ТАРИФ ООО ИНН 6679083223"
+    carrier_director: Optional[str] = "В. В. Апрельков"
