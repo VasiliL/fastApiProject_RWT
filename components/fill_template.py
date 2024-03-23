@@ -10,7 +10,8 @@ class PdfFile:
 
 
 class TN(PdfFile):
-    FIELDS = ['date_departure', 'name', 'shipper', 'client', 'consignee', 'cargo', 'weight', 'fio_and_driver_license',
+    FIELDS = ['date_departure', 'name', 'shipper', 'client', 'consignee', 'cargo', 'weight', 'carrier',
+              'fio_and_driver_license',
               'car_model_and_car_type', 'plate_number_and_trailer_description', 'copyof_shipper', 'departure_point',
               '_2copyof_date_departure', '_4copyof_date_departure', '_3copyof_date_departure', 'fio', 'arrival_point',
               'copyof_arrival_point', 'weight_arrival', 'copyof_fio', 'copyof_carrier', 'client_contract',
@@ -18,7 +19,7 @@ class TN(PdfFile):
 
     def __init__(self, run_id: int, doc_name: str):
         self.template_file = os.path.join("template_docs", "tn.pdf")
-        self.output_file = os.path.join("template_docs", f"{doc_name}.pdf")
+        self.output_file = os.path.join("template_docs", f"{run_id}.pdf")
         self.doc = doc_model.TransportInvoice(run_id=run_id, name=doc_name, doc_type=2)
         self.data = dict()
         self.content = None
