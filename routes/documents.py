@@ -88,7 +88,20 @@ async def get_trn(run_id: int, doc_name: str):
     Open tn template from template_docs and fill it with data from db.
     returns filled pdf file.
     """
-    file_path = os.path.join("template_docs", "tn.pdf")
+    tn = TN(run_id, doc_name)
+    if await tn.get_data():
+        tn.fill_pdf()
+        content = tn.get_pdf()
+        return Response(content, media_type="application/pdf")
+
+
+@router.get("/api/documents/get_ttn")
+async def get_trn(run_id: int, doc_name: str):
+    """
+    Возвращает сгенерированный документ ТТН в формате pdf.
+    Open tn template from template_docs and fill it with data from db.
+    returns filled pdf file.
+    """
     tn = TN(run_id, doc_name)
     if await tn.get_data():
         tn.fill_pdf()

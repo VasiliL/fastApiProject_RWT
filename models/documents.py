@@ -54,3 +54,7 @@ class TransportInvoice(Document):
     # static attributes
     carrier: Optional[str] = "РВ-ТАРИФ ООО ИНН 6679083223"
     carrier_director: Optional[str] = "В. В. Апрельков"
+
+
+class CargoInvoice(Document):
+    pass
