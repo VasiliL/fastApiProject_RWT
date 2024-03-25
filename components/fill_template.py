@@ -17,16 +17,17 @@ class PdfFile:
                  "УПД Перевозчика": {'doc_type': 9, 'template_name': 'carrier_invoice.pdf', 'model': None},
                  }
     FIELDS = []
+    DOC_TYPE_NAME = None
 
     def __init__(self, run_id: int, doc_name: str):
-        if doc_name not in self.DOC_TYPES:
+        if self.DOC_TYPE_NAME not in self.DOC_TYPES:
             raise HTTPException(status_code=404, detail="Document type not found.")
-        if not self.DOC_TYPES[doc_name]['model']:
+        if not self.DOC_TYPES[self.DOC_TYPE_NAME]['model']:
             raise NotImplementedError("This document type is not implemented yet.")
-        self.template_file = os.path.join("template_docs", self.DOC_TYPES[doc_name]['template_name'])
+        self.template_file = os.path.join("template_docs", self.DOC_TYPES[self.DOC_TYPE_NAME]['template_name'])
         self.output_file = os.path.join("template_docs", f"{run_id}.pdf")
-        self.doc = self.DOC_TYPES[doc_name]['model'](run_id=run_id, name=doc_name,
-                                                     doc_type=self.DOC_TYPES[doc_name]['doc_type'])
+        self.doc = self.DOC_TYPES[self.DOC_TYPE_NAME]['model'](run_id=run_id, name=doc_name,
+                                                               doc_type=self.DOC_TYPES[self.DOC_TYPE_NAME]['doc_type'])
         self.data = dict()
         self.content = None
 
@@ -73,6 +74,7 @@ class PdfFile:
 
 
 class TN(PdfFile):
+    DOC_TYPE_NAME = "ТН"
     FIELDS = ['date_departure', 'name', 'shipper', 'client', 'consignee', 'cargo', 'weight', 'carrier',
               'fio_and_driver_license', 'car_model_and_car_type', 'plate_number_and_trailer_description',
               'copyof_shipper', 'departure_point', '_2copyof_date_departure', '_4copyof_date_departure',

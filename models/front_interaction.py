@@ -95,3 +95,5 @@ class RunUpdaterWeight(MyModel, BaseModel):
     id: int
     weight: Optional[Decimal] = Decimal(0)
     weight_arrival: Optional[Decimal] = Decimal(0)
+    date_departure: Optional[date] = None
+    date_arrival: Optional[date] = None

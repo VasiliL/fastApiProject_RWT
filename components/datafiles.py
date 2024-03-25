@@ -184,14 +184,17 @@ class RunsDFWeight(FileXLSX, ABC):
     async def sanityze_df(self, df: pd.DataFrame):
         try:
             df = df.rename(columns={"ИД Рейса": "id", "Вес_погрузка": "weight",
-                                    "Вес_выгрузка": "weight_arrival"}).dropna(subset=["id"], how="any")
-            df = df.astype({"id": "int64", "weight": "float64", "weight_arrival": "float64"})
-            df = df[["id", "weight", "weight_arrival"]]
+                                    "Вес_выгрузка": "weight_arrival",
+                                    "Дата отправления": "date_departure",
+                                    "Дата прибытия": "date_arrival"}).dropna(subset=["id"], how="any")
+            df = df.astype({"id": "int64", "weight": "float64", "weight_arrival": "float64",
+                            "date_departure": "datetime64[ns]", "date_arrival": "datetime64[ns]"})
+            df = df[["id", "weight", "weight_arrival", "date_departure", "date_arrival"]]
             self.cleaned_df = True
             return df
         except KeyError as e:
             raise HTTPException(status_code=400, detail=f"Должны быть столбцы: ИД Рейса, Вес_погрузка, "
-                                                        f"Вес_выгрузка: {e}")
+                                                        f"Вес_выгрузка, Дата отправления, Дата прибытия: {e}")
 
 
 class DocumentsDF(FileXLSX, ABC):
