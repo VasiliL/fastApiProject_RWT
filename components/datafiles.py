@@ -261,3 +261,11 @@ class ClientDocsDF(DocumentsDF, FileXLSX, ABC):
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Ошибка в данных (Идентификатор рейса - число, УПД Поставщика,"
                                                         f" Реестр Заказчику, УПД Заказчику - текст): {e}")
+
+
+class MagOilReport:
+    def __init__(self):
+        self.df = None
+
+    def return_dict(self):
+        return self.df.to_dict(orient='records')

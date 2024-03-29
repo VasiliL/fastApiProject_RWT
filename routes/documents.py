@@ -1,10 +1,15 @@
-import os.path
+from typing import Optional
 
 from fastapi import APIRouter, UploadFile, HTTPException, Response
+from fastapi.responses import JSONResponse
 
 from components.datafiles import IncomeDocsDF, ClientDocsDF, RunsDFClientWeight, RunsDFWeight
 from components.func import post_multiple_objects, put_multiple_objects
 from components.fill_template import TN
+from components.interfaces import MagOilInterface
+from models.documents import MagOilReport
+
+from datetime import date
 
 router = APIRouter()
 
@@ -107,3 +112,14 @@ async def get_trn(run_id: int, doc_name: str):
         tn.fill_pdf()
         content = tn.get_pdf()
         return Response(content, media_type="application/pdf")
+
+
+@router.get("/api/documents/magoil_report")
+async def get_magoil_report(start_date: Optional[date] = None, end_date: Optional[date] = None):
+    """
+    Возвращает сгенерированный отчет Продхимпром в формате dict.
+    """
+    data = {"start_date": start_date or date.today().replace(day=1),
+            "end_date": end_date or date.today()}
+    result = MagOilInterface(MagOilReport(**data)).get_json()
+    return JSONResponse(content=result)

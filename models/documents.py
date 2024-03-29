@@ -58,3 +58,8 @@ class TransportInvoice(Document):
 
 class CargoInvoice(Document):
     pass
+
+
+class MagOilReport(BaseModel):
+    start_date: date
+    end_date: date
