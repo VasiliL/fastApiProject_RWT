@@ -6,7 +6,7 @@ from models.front_interaction import Car, Person, Invoice, DriverPlace, Run
 from psycopg2 import sql
 from typing import List, Optional
 import components.func as func
-from components.datafiles import DriverPlacesDF, RunsDF
+from components.datafiles import DriverPlacesDF
 from components.func import post_multiple_objects, put_multiple_objects
 
 router = APIRouter()
@@ -466,14 +466,10 @@ async def put_runs(data: Run):
 #     return result
 
 
-# @router.put('/api/runs/upload_xlsx')
-# async def runs_upload_xlsx(file: UploadFile):
-#     """
-#     Загружает полную версию файла с Рейсами.
-#     В файле должны быть столбцы: ИД, Дата отправления, ИД Машины, ИД Заявки, Вес_погрузка, Дата прибытия, Вес_выгрузка,
-#     ИД Водителя.
-#     По данным в файле будут изменены записи с соответствующим ID на данные из файла.
-#     Максимальный размер файла для загрузки - 150 кБ
+# @router.put('/api/runs/upload_xlsx') async def runs_upload_xlsx(file: UploadFile): """ Загружает полную версию
+# файла с Рейсами. В файле должны быть столбцы: ИД, Дата отправления, ИД Машины, ИД Заявки, Вес_погрузка,
+# Дата прибытия, Вес_выгрузка, ИД Водителя. По данным в файле будут изменены записи с соответствующим ID на данные из
+# файла. Максимальный размер файла для загрузки - 150 кБ
 #
 #     Args (necessary all):
 #

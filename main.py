@@ -36,7 +36,7 @@ app.include_router(documents, tags=["Documents"])
 
 def task_scheduler():
     logging.info(f"task_scheduler started")
-    schedule.every(2).minutes.do(schedulers.update_from_db1c)
+    schedule.every(10).minutes.do(schedulers.update_from_db1c)
 
     while True:
         schedule.run_pending()
@@ -45,6 +45,5 @@ def task_scheduler():
 
 @app.on_event("startup")
 def startup_event():
-    if os.getppid() == 1:
-        p = multiprocessing.Process(target=task_scheduler, daemon=True)
-        p.start()
+    p = multiprocessing.Process(target=task_scheduler, daemon=True)
+    p.start()
